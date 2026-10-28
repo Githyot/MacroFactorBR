@@ -43,7 +43,7 @@ export default function QuickAddScreen() {
   const params = useLocalSearchParams<{ date?: string; mode?: 'text' | 'photo'; meal?: Meal }>();
   const date = params.date ?? todayIso();
   const foods = useAllFoods();
-  const foodList = Object.values(foods);
+  const foodList = Object.values(foods).filter((f) => !f.archived);
   const addEntries = useAppStore((s) => s.addEntries);
   const addFood = useAppStore((s) => s.addFood);
   const aiUsage = useAppStore((s) => s.aiUsage);

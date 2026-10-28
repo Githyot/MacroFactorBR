@@ -47,13 +47,13 @@ export default function FoodsScreen() {
   const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const list = useMemo(() => {
-    let base = Object.values(foods);
+    let base = Object.values(foods).filter((f) => !f.archived);
     if (segment === 'favorites') base = favorites.map((id) => foods[id]).filter(Boolean);
     if (segment === 'recent') base = recentFoodIds(entries, meal, 30).map((id) => foods[id]).filter(Boolean);
     if (segment === 'recipes') base = base.filter((f) => f.kind === 'recipe');
     if (segment === 'supplements') base = base.filter((f) => f.kind === 'supplement');
     if (segment === 'dishes') base = base.filter((f) => f.kind === 'dish');
-    if (segment === 'recent' && !query) return base;
+    if (segment === 'recent' && !query) return base.filter((f) => !f.archived);
     // Alimentos cadastrados por você aparecem primeiro.
     base = [...base].sort((a, b) =>
       a.source === 'taco' && b.source !== 'taco' ? 1 : b.source === 'taco' && a.source !== 'taco' ? -1 : a.name.localeCompare(b.name, 'pt-BR'),

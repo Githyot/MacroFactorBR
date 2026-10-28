@@ -69,7 +69,7 @@ export default function TodayScreen() {
     hour: date === todayIso() ? new Date().getHours() : 23,
   });
   const isTrainingDay = day.isTrainingDay;
-  const lackingMicros = day.micros!.filter((m) => !m.ok).length;
+  const lackingMicros = day.micros!.filter((m) => m.known && !m.ok).length;
 
   const notify = (msg: string) => {
     setFlash(msg);
@@ -236,8 +236,8 @@ export default function TodayScreen() {
           {day.micros!.map((m) => (
             <Badge
               key={m.key}
-              text={`${NUTRIENT_BY_KEY[m.key].label} ${Math.round(m.pct * 100)}%`}
-              tone={m.kind === 'max' ? (m.ok ? 'neutral' : 'danger') : m.ok ? 'good' : m.pct >= 0.5 ? 'warn' : 'neutral'}
+              text={`${NUTRIENT_BY_KEY[m.key].label} ${m.known ? `${Math.round(m.pct * 100)}%` : 'sem dados'}`}
+              tone={!m.known ? 'neutral' : m.kind === 'max' ? (m.ok ? 'neutral' : 'danger') : m.ok ? 'good' : m.pct >= 0.5 ? 'warn' : 'neutral'}
             />
           ))}
         </View>

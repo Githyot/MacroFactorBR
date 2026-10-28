@@ -155,9 +155,21 @@ export const useAppStore = create<PersistedState & Actions>()(
           return food;
         },
         updateFood: (food) => set({ customFoods: { ...get().customFoods, [food.id]: food } }),
+        // Alimento já usado no diário ou numa receita é arquivado, não apagado:
+        // assim o histórico, o gasto adaptativo e as receitas não mudam.
         deleteFood: (id) => {
-          const { [id]: _removed, ...rest } = get().customFoods;
-          set({ customFoods: rest, favorites: get().favorites.filter((f) => f !== id) });
+          const { customFoods, entries, recipes, savedMeals } = get();
+          const inUse =
+            entries.some((e) => e.foodId === id) ||
+            Object.values(recipes).some((r) => r.ingredients.some((i) => i.foodId === id)) ||
+            savedMeals.some((m) => m.items.some((i) => i.foodId === id));
+          const favorites = get().favorites.filter((f) => f !== id);
+          if (inUse && customFoods[id]) {
+            set({ customFoods: { ...customFoods, [id]: { ...customFoods[id], archived: true } }, favorites });
+            return;
+          }
+          const { [id]: _removed, ...rest } = customFoods;
+          set({ customFoods: rest, favorites });
         },
 
         addEntry: (e) => set({ entries: [...get().entries, { ...e, id: newId() }] }),
@@ -186,8 +198,16 @@ export const useAppStore = create<PersistedState & Actions>()(
           return recipe;
         },
         deleteRecipe: (id) => {
-          const { [id]: _removed, ...rest } = get().recipes;
-          set({ recipes: rest });
+          const { recipes, entries, savedMeals } = get();
+          const foodId = `recipe-${id}`;
+          const inUse = entries.some((e) => e.foodId === foodId) || savedMeals.some((m) => m.items.some((i) => i.foodId === foodId));
+          const favorites = get().favorites.filter((f) => f !== foodId);
+          if (inUse && recipes[id]) {
+            set({ recipes: { ...recipes, [id]: { ...recipes[id], archived: true } }, favorites });
+            return;
+          }
+          const { [id]: _removed, ...rest } = recipes;
+          set({ recipes: rest, favorites });
         },
 
         toggleFavorite: (foodId) => {
@@ -200,13 +220,8 @@ export const useAppStore = create<PersistedState & Actions>()(
         setTrainingDay: (date, value) => set({ trainingDays: { ...get().trainingDays, [date]: value } }),
         setHabit: (date, habit, value) => set({ habits: { ...get().habits, [date]: { ...get().habits[date], [habit]: value } } }),
 
-        applyCheckIn: (c) => {
-          const profile = get().profile;
-          set({
-            checkIns: [...get().checkIns, c],
-            profile: profile ? { ...profile, kcalAdjustment: (profile.kcalAdjustment ?? 0) + c.adjustmentKcal } : profile,
-          });
-        },
+        // O check-in só registra a semana: a meta já acompanha o gasto adaptativo.
+        applyCheckIn: (c) => set({ checkIns: [...get().checkIns, c] }),
 
         saveMeasurement: (m) => {
           const list = get().measurements.filter((x) => x.date !== m.date);
@@ -336,7 +351,7 @@ export function useAllFoods(): Record<string, Food> {
 }
 
 export function findFoodByBarcode(foods: Record<string, Food>, barcode: string): Food | undefined {
-  return Object.values(foods).find((f) => f.barcode === barcode);
+  return Object.values(foods).find((f) => f.barcode === barcode && !f.archived);
 }
 
 export function useHydrated(): boolean {

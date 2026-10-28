@@ -10,7 +10,7 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - Perfil com sexo, idade, altura, peso, % de gordura, atividade, objetivo, nível de treino e dias de treino.
 - Proteína em primeiro lugar: meta em g/kg (padrão 2,0), meta por refeição, leucina por refeição (≥ 2,5 g) e qualidade da proteína (DIAAS).
 - Superávit pelo nível de treino (iniciante 1–1,5 %/mês, intermediário 0,5–1 %, avançado 0,25–0,5 %), explicado número a número.
-- Gasto adaptativo pela tendência do peso e check-in semanal que ajusta as calorias em passos de até 250 kcal e avisa bulking sujo.
+- Gasto adaptativo pela tendência do peso: a meta se recalcula sozinha pelo gasto real. O check-in semanal mostra o ritmo contra o alvo e avisa bulking sujo.
 - Ciclo de carboidrato opcional (dia de treino × descanso, mesma média semanal).
 - Medidas corporais (cintura, quadril, peito, ombros, pescoço, braços e coxas dos dois lados, antebraço, panturrilha, % de gordura), fotos de progresso (ficam só no aparelho) e gráfico de tendência.
 
@@ -35,7 +35,7 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 
 **Planejamento e dados**
 - Cardápio automático da semana com comida brasileira e lista de compras em quantidades cruas.
-- Painel de micronutrientes com alvos por sexo e idade (DRIs) e sugestões de alimentos.
+- Painel de micronutrientes com alvos por sexo e idade (DRIs) e sugestões de alimentos. Nutrientes sem dado suficiente nos alimentos do dia (a TACO não traz vitamina D nem B12) aparecem como "sem dados" em vez de 0%.
 - Exportação em PDF e CSV para o nutricionista.
 - Conta por e-mail (código, sem senha), sincronização entre aparelhos, Health Connect e Apple Saúde.
 - LGPD: consentimento, exportar tudo e excluir conta.
@@ -73,7 +73,7 @@ Na web, o OCR usa Tesseract.js e a voz usa o reconhecimento de fala do navegador
    ```
 3. Em Authentication › Providers, deixe o login por e-mail ativo. No template "Magic Link", inclua `{{ .Token }}` para o e-mail trazer o código de 6 dígitos.
 
-O banco tem as tabelas do estado do usuário (sincronização), da base compartilhada de alimentos (um produto vira "conferido" com 2 confirmações), dos relatórios de erro e do uso da IA, todas com RLS. A função `ai` usa o Claude e nunca expõe a chave no app.
+O banco tem as tabelas do estado do usuário (sincronização), da base compartilhada de alimentos (um produto vira "conferido" com 2 confirmações), dos relatórios de erro e do uso da IA, todas com RLS. A função `ai` usa o Claude e nunca expõe a chave no app. Cada ação tem limite diário (grátis/Pro): foto 3/60, tabela 30/200, texto 40/300, coach 5/30.
 
 ## Pagamentos (RevenueCat)
 

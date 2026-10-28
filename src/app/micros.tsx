@@ -4,7 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { Button, Card, Chips, colors, Muted, ProgressBar, styles } from '../components/ui';
 import { addDays, dayTotals, todayIso } from '../domain/foods';
-import { microStatus, microTargets, suggestFoodsFor } from '../domain/micros';
+import { microCoverage, microStatus, microTargets, suggestFoodsFor } from '../domain/micros';
 import { formatAmount, NUTRIENT_BY_KEY, Nutrients, scaleNutrients } from '../domain/nutrients';
 import { hasFeature } from '../domain/pro';
 import { ageFromBirthDate } from '../domain/targets';
@@ -23,22 +23,21 @@ export default function MicrosScreen() {
   const status = useMemo(() => {
     if (!profile) return [];
     let totals: Nutrients;
+    let used = entries.filter((e) => e.date === date);
     if (range === 'day') {
-      totals = dayTotals(
-        entries.filter((e) => e.date === date),
-        foods,
-      );
+      totals = dayTotals(used, foods);
     } else {
       // Média dos dias com registro nos últimos 7 dias.
       const from = addDays(date, -6);
       const week = entries.filter((e) => e.date >= from && e.date <= date);
+      used = week;
       const days = new Set(week.map((e) => e.date)).size || 1;
       totals = scaleNutrients(dayTotals(week, foods), 100 / days);
     }
-    return microStatus(totals, microTargets(profile.sex, ageFromBirthDate(profile.birthDate)));
+    return microStatus(totals, microTargets(profile.sex, ageFromBirthDate(profile.birthDate)), microCoverage(used, foods));
   }, [profile, entries, foods, date, range]);
 
-  const foodList = useMemo(() => Object.values(foods), [foods]);
+  const foodList = useMemo(() => Object.values(foods).filter((f) => !f.archived), [foods]);
   const showSuggestions = hasFeature(isPro, 'microsFull');
 
   if (!profile) {
@@ -66,7 +65,7 @@ export default function MicrosScreen() {
       </Muted>
       {status.map((m) => {
         const info = NUTRIENT_BY_KEY[m.key];
-        const lacking = m.kind === 'min' && !m.ok;
+        const lacking = m.known && m.kind === 'min' && !m.ok;
         const suggestions = lacking && showSuggestions ? suggestFoodsFor(m.key, foodList, 3) : [];
         return (
           <Card key={m.key}>
@@ -77,6 +76,12 @@ export default function MicrosScreen() {
                 {formatAmount(m.target, info.unit)}
               </Text>
             </View>
+            {!m.known ? (
+              <Muted style={{ marginBottom: 4 }}>
+                Sem dados suficientes: a maior parte do que você registrou não informa {info.label.toLowerCase()}
+                {m.key === 'vitaminD' || m.key === 'vitaminB12' ? ' (a TACO não traz esse nutriente; rótulos escaneados trazem)' : ''}.
+              </Muted>
+            ) : null}
             <ProgressBar value={m.value} target={m.target} color={m.kind === 'max' ? (m.ok ? colors.muted : colors.danger) : m.ok ? colors.primary : colors.carbs} />
             {suggestions.length > 0 ? (
               <View style={{ marginTop: 8 }}>

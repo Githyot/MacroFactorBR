@@ -110,7 +110,8 @@ export function energyDelta(p: Profile, tdee: number): number {
 
 export function computeTargets(p: Profile, adaptiveTdee?: number, today = new Date()): Targets {
   const tdee = adaptiveTdee ?? formulaTdee(p, today);
-  const kcal = tdee + energyDelta(p, tdee) + (p.kcalAdjustment ?? 0);
+  // Ajustes antigos de check-in só valem sobre a fórmula: o gasto adaptativo já é o valor real.
+  const kcal = tdee + energyDelta(p, tdee) + (adaptiveTdee === undefined ? (p.kcalAdjustment ?? 0) : 0);
   const protein = p.proteinPerKg * p.weightKg;
   // Gordura: 25% das calorias, nunca abaixo de 0,6 g/kg (saúde hormonal).
   const fat = Math.max((kcal * 0.25) / 9, 0.6 * p.weightKg);
@@ -149,7 +150,8 @@ export function dayTargets(t: Targets, p: Profile, isTrainingDay: boolean): DayT
 
 /** Explica cada número da meta em linguagem simples. */
 export function explainTargets(p: Profile, t: Targets, today = new Date()): string[] {
-  const delta = t.kcal - t.tdee - (p.kcalAdjustment ?? 0);
+  const adj = t.tdeeSource === 'formula' ? (p.kcalAdjustment ?? 0) : 0;
+  const delta = t.kcal - t.tdee - adj;
   const lines = [
     `Gasto diário estimado: ${t.tdee} kcal (${t.tdeeSource === 'adaptive' ? 'calculado pelo seu peso e pelo que você comeu' : `taxa basal ${Math.round(bmr(p, today))} kcal × fator de atividade ${ACTIVITY_FACTORS[p.activity].factor}`}).`,
   ];
@@ -161,7 +163,7 @@ export function explainTargets(p: Profile, t: Targets, today = new Date()): stri
   } else {
     lines.push('Calorias de manutenção: o treino e a proteína alta fazem a recomposição.');
   }
-  if (p.kcalAdjustment) lines.push(`Ajuste dos check-ins semanais: ${p.kcalAdjustment > 0 ? '+' : ''}${p.kcalAdjustment} kcal.`);
+  if (adj) lines.push(`Ajuste dos check-ins semanais: ${adj > 0 ? '+' : ''}${adj} kcal.`);
   lines.push(`Proteína: ${p.proteinPerKg} g × ${p.weightKg} kg = ${t.protein} g (faixa com melhor evidência para hipertrofia: 1,6–2,2 g/kg).`);
   lines.push(`Gordura: ${t.fat} g, pelo menos 25% das calorias e 0,6 g/kg para a saúde hormonal.`);
   lines.push(`Carboidrato: o restante, ${t.carbs} g, combustível para o treino.`);

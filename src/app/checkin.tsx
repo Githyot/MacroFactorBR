@@ -21,7 +21,11 @@ export default function CheckInScreen() {
   const [aiText, setAiText] = useState<string | null>(null);
   const [aiBusy, setAiBusy] = useState(false);
 
-  const result = useMemo(() => (data ? runCheckIn(data.profile, data.adaptive, todayIso()) : undefined), [data]);
+  const previousKcal = [...history].reverse().find((c) => c.kcalTarget !== undefined)?.kcalTarget;
+  const result = useMemo(
+    () => (data ? runCheckIn(data.profile, data.adaptive, todayIso(), data.targets.kcal, previousKcal) : undefined),
+    [data, previousKcal],
+  );
   if (!data || !result) {
     return (
       <View style={styles.content}>
@@ -79,16 +83,18 @@ export default function CheckInScreen() {
         ) : null}
       </Card>
 
-      {result.adjustmentKcal !== 0 ? (
-        <Card>
-          <Text style={styles.macroLabel}>
-            Meta de calorias: {data.targets.kcal} → {data.targets.kcal + result.adjustmentKcal} kcal
-          </Text>
-          <Muted>A proteína continua em {data.targets.protein} g. O ajuste sai dos carboidratos.</Muted>
-        </Card>
-      ) : null}
+      <Card>
+        <Text style={styles.macroLabel}>
+          Meta de hoje: {data.targets.kcal} kcal · {data.targets.protein} g de proteína
+        </Text>
+        <Muted>
+          {data.targets.tdeeSource === 'adaptive'
+            ? `Calculada com o seu gasto real (${data.targets.tdee} kcal). Ela se ajusta sozinha conforme o peso responde.`
+            : 'Ainda pela fórmula. Com 2 semanas de pesagens e refeições, passa a usar o seu gasto real.'}
+        </Muted>
+      </Card>
 
-      <Button title={result.adjustmentKcal !== 0 ? 'Aplicar ajuste' : 'Concluir check-in'} onPress={confirm} />
+      <Button title="Concluir check-in" onPress={confirm} />
       {hasBackend ? <Button title={aiBusy ? 'Pensando…' : 'Pedir análise do coach (IA)'} variant="secondary" onPress={askCoach} disabled={aiBusy} /> : null}
       {aiText ? (
         <Card>
@@ -109,7 +115,7 @@ export default function CheckInScreen() {
                 <Text style={{ color: colors.text }}>{c.date.split('-').reverse().join('/')}</Text>
                 <Text style={styles.macroValue}>
                   {c.verdict === 'insufficient' ? 'sem dados' : `${fmtG(c.weeklyChangeKg)}/sem`} ·{' '}
-                  {c.adjustmentKcal === 0 ? 'manteve' : `${c.adjustmentKcal > 0 ? '+' : ''}${c.adjustmentKcal} kcal`}
+                  {c.kcalTarget ? `${c.kcalTarget} kcal` : c.adjustmentKcal === 0 ? 'manteve' : `${c.adjustmentKcal > 0 ? '+' : ''}${c.adjustmentKcal} kcal`}
                 </Text>
               </View>
             ))}
