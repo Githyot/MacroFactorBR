@@ -25,10 +25,10 @@ export function dailyTips(args: {
   if (low > 0) tips.push(`${low} refeição(ões) ficaram abaixo de ${proteinPerMealMin} g de proteína. Distribuir melhor ajuda a síntese muscular.`);
   const kcal = totals.kcal ?? 0;
   if (kcal > targets.kcal * 1.1) tips.push('Calorias acima da meta hoje. Sem culpa: o que importa é a média da semana.');
-  const missing = micros.filter((m) => m.kind === 'min' && m.pct < 0.5).slice(0, 2);
+  const missing = micros.filter((m) => m.known !== false && m.kind === 'min' && m.pct < 0.5).slice(0, 2);
   for (const m of missing) tips.push(`${NUTRIENT_BY_KEY[m.key].label} baixo hoje (${Math.round(m.pct * 100)}% do alvo). Veja sugestões no painel de micronutrientes.`);
   const sodium = micros.find((m) => m.key === 'sodium');
-  if (sodium && !sodium.ok) tips.push('Sódio acima do limite. Atenção a embutidos, temperos prontos e salgadinhos.');
+  if (sodium && sodium.known !== false && !sodium.ok) tips.push('Sódio acima do limite. Atenção a embutidos, temperos prontos e salgadinhos.');
   return tips;
 }
 
@@ -36,9 +36,9 @@ export function explainCheckIn(c: CheckIn): string {
   if (c.verdict === 'insufficient') return c.message;
   const why =
     c.verdict === 'keep'
-      ? 'O ritmo está dentro do alvo, então trocar as metas agora só atrapalharia.'
+      ? 'O ritmo está dentro do alvo.'
       : c.verdict === 'increase'
-        ? 'Você está ganhando menos que o planejado. Comer um pouco mais garante energia para construir músculo.'
-        : 'Você está ganhando mais rápido que o planejado. Reduzir um pouco evita acumular gordura junto com o músculo.';
-  return `${c.message} ${why} O ajuste é pequeno de propósito: o peso oscila com água e sal, e a tendência leva algumas semanas para mostrar o efeito.`;
+        ? 'Como você está ganhando menos que o planejado, o app conclui que seu gasto é maior do que parecia e sobe a meta para garantir energia para construir músculo.'
+        : 'Como você está ganhando mais rápido que o planejado, o app conclui que seu gasto é menor do que parecia e reduz a meta para não acumular gordura junto com o músculo.';
+  return `${c.message} ${why} O peso oscila com água e sal; por isso o app usa a tendência das últimas semanas e não a balança de um dia.`;
 }

@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { Badge, Button, Card, colors, LinkText, Muted, styles } from '../../components/ui';
+import { Badge, Button, Card, colors, LinkText, Muted, styles, useTheme } from '../../components/ui';
 import { Food, Meal, MEALS, recentFoodIds, searchFoods, todayIso } from '../../domain/foods';
 import { decodeRecipe } from '../../domain/recipes';
 import { useAllFoods, useAppStore } from '../../store/useAppStore';
@@ -30,6 +30,7 @@ const SEGMENTS: { value: Segment; label: string }[] = [
 ];
 
 export default function FoodsScreen() {
+  useTheme();
   const params = useLocalSearchParams<{ meal?: Meal; date?: string }>();
   const meal = params.meal;
   const date = params.date ?? todayIso();
@@ -47,13 +48,13 @@ export default function FoodsScreen() {
   const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const list = useMemo(() => {
-    let base = Object.values(foods);
+    let base = Object.values(foods).filter((f) => !f.archived);
     if (segment === 'favorites') base = favorites.map((id) => foods[id]).filter(Boolean);
     if (segment === 'recent') base = recentFoodIds(entries, meal, 30).map((id) => foods[id]).filter(Boolean);
     if (segment === 'recipes') base = base.filter((f) => f.kind === 'recipe');
     if (segment === 'supplements') base = base.filter((f) => f.kind === 'supplement');
     if (segment === 'dishes') base = base.filter((f) => f.kind === 'dish');
-    if (segment === 'recent' && !query) return base;
+    if (segment === 'recent' && !query) return base.filter((f) => !f.archived);
     // Alimentos cadastrados por você aparecem primeiro.
     base = [...base].sort((a, b) =>
       a.source === 'taco' && b.source !== 'taco' ? 1 : b.source === 'taco' && a.source !== 'taco' ? -1 : a.name.localeCompare(b.name, 'pt-BR'),

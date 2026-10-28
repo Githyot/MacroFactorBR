@@ -1,7 +1,7 @@
 // Alvos de micronutrientes por sexo e idade (DRIs do IOM/National Academies, adultos)
 // e sugestões de comida brasileira para cobrir o que está faltando.
 
-import { Food, normalizeSearch } from './foods';
+import { DiaryEntry, Food, normalizeSearch } from './foods';
 import { measuresFor } from './measures';
 import { NutrientKey, Nutrients } from './nutrients';
 import { Sex } from './targets';
@@ -30,13 +30,48 @@ export function microTargets(sex: Sex, age: number): MicroTarget[] {
   ];
 }
 
-export type MicroStatus = MicroTarget & { value: number; pct: number; ok: boolean };
+export type MicroStatus = MicroTarget & {
+  value: number;
+  pct: number;
+  ok: boolean;
+  /** false quando boa parte do que foi comido não tem esse dado (a TACO não traz vitamina D nem B12). */
+  known: boolean;
+  /** Parte do valor que veio de vitaminas e minerais tomados. */
+  fromSupplements: number;
+};
 
-export function microStatus(totals: Nutrients, targets: MicroTarget[]): MicroStatus[] {
+/** Para cada nutriente, a fração das calorias do dia vinda de alimentos que informam esse nutriente. */
+export function microCoverage(entries: DiaryEntry[], foods: Record<string, Food>, keys: NutrientKey[] = TRACKED_MICROS): Partial<Record<NutrientKey, number>> {
+  let total = 0;
+  const covered: Partial<Record<NutrientKey, number>> = {};
+  for (const e of entries) {
+    const f = foods[e.foodId];
+    if (!f) continue;
+    // Pesa pelas calorias (água e café não contam); alimentos sem caloria pesam pelo peso mínimo.
+    const w = Math.max(((f.per100g.kcal ?? 0) * e.grams) / 100, 1);
+    total += w;
+    for (const k of keys) if (f.per100g[k] !== undefined) covered[k] = (covered[k] ?? 0) + w;
+  }
+  return Object.fromEntries(keys.map((k) => [k, total > 0 ? (covered[k] ?? 0) / total : 0]));
+}
+
+const MIN_COVERAGE = 0.6;
+
+export function microStatus(
+  totals: Nutrients,
+  targets: MicroTarget[],
+  coverage?: Partial<Record<NutrientKey, number>>,
+  supplements: Nutrients = {},
+): MicroStatus[] {
   return targets.map((t) => {
-    const value = totals[t.key] ?? 0;
+    const fromSupplements = supplements[t.key] ?? 0;
+    const value = (totals[t.key] ?? 0) + fromSupplements;
     const pct = t.target > 0 ? value / t.target : 0;
-    return { ...t, value, pct, ok: t.kind === 'min' ? pct >= 1 : pct <= 1 };
+    const ok = t.kind === 'min' ? pct >= 1 : pct <= 1;
+    // Com pouco dado não dá para dizer que falta; mas se já passou do alvo, sabemos que atingiu.
+    // Com suplemento, o valor é pelo menos a dose tomada.
+    const known = !coverage || fromSupplements > 0 || (coverage[t.key] ?? 0) >= MIN_COVERAGE || (t.kind === 'min' && ok) || (t.kind === 'max' && !ok);
+    return { ...t, value, pct, ok, known, fromSupplements };
   });
 }
 

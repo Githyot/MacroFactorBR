@@ -5,14 +5,19 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo, useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { ColorMode, ThemeId } from '../components/themes';
 
 import { TACO_FOODS } from '../data/taco';
 import { WeightEntry } from '../domain/adaptiveTdee';
 import { CheckIn } from '../domain/checkin';
-import { DiaryEntry, Food, Meal } from '../domain/foods';
+import { DiaryEntry, Food, Meal, todayIso } from '../domain/foods';
 import { leucinePer100g } from '../domain/protein';
 import { Recipe, recipeToFood } from '../domain/recipes';
+import { migrateHabits, Supplement, SupplementLog } from '../domain/supplements';
 import { Profile } from '../domain/targets';
+import { Exercise, EXERCISES } from '../domain/workout/exercises';
+import { Program } from '../domain/workout/programs';
+import { Routine, Workout } from '../domain/workout/training';
 
 export function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -22,8 +27,15 @@ export type BodyMeasurement = {
   date: string;
   waistCm?: number;
   chestCm?: number;
+  neckCm?: number;
+  shouldersCm?: number;
+  /** Braço e coxa: o campo sem lado é o esquerdo (compatível com registros antigos). */
   armCm?: number;
+  armRightCm?: number;
+  forearmCm?: number;
   thighCm?: number;
+  thighRightCm?: number;
+  calfCm?: number;
   hipCm?: number;
   bodyFatPct?: number;
 };
@@ -41,6 +53,9 @@ export type Settings = {
   proActive?: boolean;
   healthSync?: boolean;
   lastSyncAt?: string;
+  /** Visual do app (estilo de cada sistema) e modo claro/escuro. */
+  themeId?: ThemeId;
+  colorMode?: ColorMode;
 };
 
 /** Dados que vão para o aparelho e para a nuvem. */
@@ -53,12 +68,20 @@ export type PersistedState = {
   favorites: string[];
   savedMeals: SavedMeal[];
   trainingDays: Record<string, boolean>;
+  /** Antigo registro de creatina; migrado para supplements/supplementLog na v4. */
   habits: Record<string, { creatine?: boolean }>;
+  supplements: Record<string, Supplement>;
+  supplementLog: SupplementLog;
   checkIns: CheckIn[];
   measurements: BodyMeasurement[];
   photos: ProgressPhoto[];
   prices: Record<string, Price>;
   aiUsage: Record<string, number>;
+  workouts: Workout[];
+  routines: Record<string, Routine>;
+  customExercises: Record<string, Exercise>;
+  /** Treino em andamento: salvo para não se perder se o app fechar. */
+  activeWorkout?: Workout;
   settings: Settings;
   updatedAt: string;
 };
@@ -80,7 +103,9 @@ type Actions = {
   saveMeal: (name: string, items: SavedMeal['items']) => void;
   deleteSavedMeal: (id: string) => void;
   setTrainingDay: (date: string, value: boolean) => void;
-  setHabit: (date: string, habit: 'creatine', value: boolean) => void;
+  saveSupplement: (s: Omit<Supplement, 'id' | 'createdAt'> & { id?: string }) => Supplement;
+  deleteSupplement: (id: string) => void;
+  setSupplementTaken: (date: string, id: string, doses: number) => void;
   applyCheckIn: (c: CheckIn) => void;
   saveMeasurement: (m: BodyMeasurement) => void;
   addPhoto: (p: Omit<ProgressPhoto, 'id'>) => void;
@@ -88,6 +113,15 @@ type Actions = {
   setPrice: (foodId: string, price: Price | undefined) => void;
   countAiUse: (date: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
+  startWorkout: (w: Workout) => void;
+  updateActiveWorkout: (fn: (w: Workout) => Workout) => void;
+  finishWorkout: () => Workout | undefined;
+  discardWorkout: () => void;
+  deleteWorkout: (id: string) => void;
+  saveRoutine: (r: Omit<Routine, 'id' | 'createdAt'> & { id?: string }) => Routine;
+  deleteRoutine: (id: string) => void;
+  addProgram: (p: Program) => void;
+  addCustomExercise: (e: Omit<Exercise, 'id' | 'custom'>) => Exercise;
   replaceAll: (s: PersistedState) => void;
   resetAll: () => void;
 };
@@ -102,11 +136,17 @@ const EMPTY: PersistedState = {
   savedMeals: [],
   trainingDays: {},
   habits: {},
+  supplements: {},
+  supplementLog: {},
   checkIns: [],
   measurements: [],
   photos: [],
   prices: {},
   aiUsage: {},
+  workouts: [],
+  routines: {},
+  customExercises: {},
+  activeWorkout: undefined,
   settings: {},
   updatedAt: new Date(0).toISOString(),
 };
@@ -127,9 +167,21 @@ export const useAppStore = create<PersistedState & Actions>()(
           return food;
         },
         updateFood: (food) => set({ customFoods: { ...get().customFoods, [food.id]: food } }),
+        // Alimento já usado no diário ou numa receita é arquivado, não apagado:
+        // assim o histórico, o gasto adaptativo e as receitas não mudam.
         deleteFood: (id) => {
-          const { [id]: _removed, ...rest } = get().customFoods;
-          set({ customFoods: rest, favorites: get().favorites.filter((f) => f !== id) });
+          const { customFoods, entries, recipes, savedMeals } = get();
+          const inUse =
+            entries.some((e) => e.foodId === id) ||
+            Object.values(recipes).some((r) => r.ingredients.some((i) => i.foodId === id)) ||
+            savedMeals.some((m) => m.items.some((i) => i.foodId === id));
+          const favorites = get().favorites.filter((f) => f !== id);
+          if (inUse && customFoods[id]) {
+            set({ customFoods: { ...customFoods, [id]: { ...customFoods[id], archived: true } }, favorites });
+            return;
+          }
+          const { [id]: _removed, ...rest } = customFoods;
+          set({ customFoods: rest, favorites });
         },
 
         addEntry: (e) => set({ entries: [...get().entries, { ...e, id: newId() }] }),
@@ -158,8 +210,16 @@ export const useAppStore = create<PersistedState & Actions>()(
           return recipe;
         },
         deleteRecipe: (id) => {
-          const { [id]: _removed, ...rest } = get().recipes;
-          set({ recipes: rest });
+          const { recipes, entries, savedMeals } = get();
+          const foodId = `recipe-${id}`;
+          const inUse = entries.some((e) => e.foodId === foodId) || savedMeals.some((m) => m.items.some((i) => i.foodId === foodId));
+          const favorites = get().favorites.filter((f) => f !== foodId);
+          if (inUse && recipes[id]) {
+            set({ recipes: { ...recipes, [id]: { ...recipes[id], archived: true } }, favorites });
+            return;
+          }
+          const { [id]: _removed, ...rest } = recipes;
+          set({ recipes: rest, favorites });
         },
 
         toggleFavorite: (foodId) => {
@@ -170,15 +230,33 @@ export const useAppStore = create<PersistedState & Actions>()(
         deleteSavedMeal: (id) => set({ savedMeals: get().savedMeals.filter((m) => m.id !== id) }),
 
         setTrainingDay: (date, value) => set({ trainingDays: { ...get().trainingDays, [date]: value } }),
-        setHabit: (date, habit, value) => set({ habits: { ...get().habits, [date]: { ...get().habits[date], [habit]: value } } }),
-
-        applyCheckIn: (c) => {
-          const profile = get().profile;
-          set({
-            checkIns: [...get().checkIns, c],
-            profile: profile ? { ...profile, kcalAdjustment: (profile.kcalAdjustment ?? 0) + c.adjustmentKcal } : profile,
-          });
+        saveSupplement: (input) => {
+          const prev = input.id ? get().supplements[input.id] : undefined;
+          const sup: Supplement = { ...input, id: input.id ?? newId(), createdAt: prev?.createdAt ?? new Date().toISOString() };
+          set({ supplements: { ...get().supplements, [sup.id]: sup } });
+          return sup;
         },
+        // Com doses já marcadas, só arquiva: o histórico e os micros de dias passados não mudam.
+        deleteSupplement: (id) => {
+          const { supplements, supplementLog } = get();
+          if (!supplements[id]) return;
+          const used = Object.values(supplementLog).some((day) => (day[id] ?? 0) > 0);
+          if (used) {
+            set({ supplements: { ...supplements, [id]: { ...supplements[id], archived: true } } });
+            return;
+          }
+          const { [id]: _removed, ...rest } = supplements;
+          set({ supplements: rest });
+        },
+        setSupplementTaken: (date, id, doses) => {
+          const log = get().supplementLog;
+          const day = { ...log[date], [id]: Math.max(0, doses) };
+          if (!day[id]) delete day[id];
+          set({ supplementLog: { ...log, [date]: day } });
+        },
+
+        // O check-in só registra a semana: a meta já acompanha o gasto adaptativo.
+        applyCheckIn: (c) => set({ checkIns: [...get().checkIns, c] }),
 
         saveMeasurement: (m) => {
           const list = get().measurements.filter((x) => x.date !== m.date);
@@ -200,17 +278,66 @@ export const useAppStore = create<PersistedState & Actions>()(
         countAiUse: (date) => set({ aiUsage: { ...get().aiUsage, [date]: (get().aiUsage[date] ?? 0) + 1 } }),
         updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
 
-        replaceAll: (s) => rawSet({ ...EMPTY, ...s }),
+        startWorkout: (w) => set({ activeWorkout: w }),
+        updateActiveWorkout: (fn) => {
+          const w = get().activeWorkout;
+          if (w) set({ activeWorkout: fn(w) });
+        },
+        finishWorkout: () => {
+          const w = get().activeWorkout;
+          if (!w) return undefined;
+          // Só ficam as séries concluídas; exercícios sem nenhuma série feita saem.
+          const exercises = w.exercises
+            .map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) }))
+            .filter((e) => e.sets.length > 0);
+          const done: Workout = { ...w, exercises, endedAt: new Date().toISOString() };
+          // O dia do treino vira "dia de treino" na dieta (ciclo de carboidrato).
+          const day = todayIso(new Date(w.startedAt));
+          set({
+            workouts: [...get().workouts, done].sort((a, b) => a.startedAt.localeCompare(b.startedAt)),
+            activeWorkout: undefined,
+            trainingDays: { ...get().trainingDays, [day]: true },
+          });
+          return done;
+        },
+        discardWorkout: () => set({ activeWorkout: undefined }),
+        deleteWorkout: (id) => set({ workouts: get().workouts.filter((w) => w.id !== id) }),
+        saveRoutine: (r) => {
+          const routine: Routine = { ...r, id: r.id ?? newId(), createdAt: get().routines[r.id ?? '']?.createdAt ?? new Date().toISOString() };
+          set({ routines: { ...get().routines, [routine.id]: routine } });
+          return routine;
+        },
+        deleteRoutine: (id) => {
+          const { [id]: _removed, ...rest } = get().routines;
+          set({ routines: rest });
+        },
+        addProgram: (p) => {
+          const created = new Date().toISOString();
+          const add = Object.fromEntries(
+            p.routines.map((r) => {
+              const id = newId();
+              return [id, { id, name: r.name, folder: p.name, exercises: r.exercises.map((e) => ({ ...e })), createdAt: created }];
+            }),
+          );
+          set({ routines: { ...get().routines, ...add } });
+        },
+        addCustomExercise: (e) => {
+          const ex: Exercise = { ...e, id: `custom-${newId()}`, custom: true };
+          set({ customExercises: { ...get().customExercises, [ex.id]: ex } });
+          return ex;
+        },
+
+        replaceAll: (s) => rawSet(migrateHabits({ ...EMPTY, ...s })),
         resetAll: () => rawSet({ ...EMPTY, updatedAt: new Date().toISOString() }),
       };
     },
     {
       name: 'macrofactorbr-v1',
-      version: 2,
+      version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => pickPersisted(s),
-      // v1 só tinha perfil, alimentos, diário e pesos.
-      migrate: (persisted) => ({ ...EMPTY, ...(persisted as Partial<PersistedState>) }),
+      // v1 só tinha perfil, alimentos, diário e pesos; v2 não tinha treinos; v3 marcava creatina como hábito.
+      migrate: (persisted) => migrateHabits({ ...EMPTY, ...(persisted as Partial<PersistedState>) }),
     },
   ),
 );
@@ -226,11 +353,17 @@ export function pickPersisted(s: PersistedState): PersistedState {
     savedMeals: s.savedMeals,
     trainingDays: s.trainingDays,
     habits: s.habits,
+    supplements: s.supplements,
+    supplementLog: s.supplementLog,
     checkIns: s.checkIns,
     measurements: s.measurements,
     photos: s.photos,
     prices: s.prices,
     aiUsage: s.aiUsage,
+    workouts: s.workouts,
+    routines: s.routines,
+    customExercises: s.customExercises,
+    activeWorkout: s.activeWorkout,
     settings: s.settings,
     updatedAt: s.updatedAt,
   };
@@ -255,7 +388,7 @@ export function useAllFoods(): Record<string, Food> {
 }
 
 export function findFoodByBarcode(foods: Record<string, Food>, barcode: string): Food | undefined {
-  return Object.values(foods).find((f) => f.barcode === barcode);
+  return Object.values(foods).find((f) => f.barcode === barcode && !f.archived);
 }
 
 export function useHydrated(): boolean {
@@ -264,4 +397,12 @@ export function useHydrated(): boolean {
     () => useAppStore.persist.hasHydrated(),
     () => false,
   );
+}
+
+const EXERCISE_BY_ID: Record<string, Exercise> = Object.fromEntries(EXERCISES.map((e) => [e.id, e]));
+
+/** Biblioteca completa: exercícios do app + os que você criou. */
+export function useAllExercises(): Record<string, Exercise> {
+  const custom = useAppStore((s) => s.customExercises);
+  return useMemo(() => ({ ...EXERCISE_BY_ID, ...custom }), [custom]);
 }

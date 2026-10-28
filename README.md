@@ -10,9 +10,9 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - Perfil com sexo, idade, altura, peso, % de gordura, atividade, objetivo, nível de treino e dias de treino.
 - Proteína em primeiro lugar: meta em g/kg (padrão 2,0), meta por refeição, leucina por refeição (≥ 2,5 g) e qualidade da proteína (DIAAS).
 - Superávit pelo nível de treino (iniciante 1–1,5 %/mês, intermediário 0,5–1 %, avançado 0,25–0,5 %), explicado número a número.
-- Gasto adaptativo pela tendência do peso e check-in semanal que ajusta as calorias em passos de até 250 kcal e avisa bulking sujo.
+- Gasto adaptativo pela tendência do peso: a meta se recalcula sozinha pelo gasto real. O check-in semanal mostra o ritmo contra o alvo e avisa bulking sujo.
 - Ciclo de carboidrato opcional (dia de treino × descanso, mesma média semanal).
-- Medidas corporais, fotos de progresso (ficam só no aparelho) e gráfico de tendência.
+- Medidas corporais (cintura, quadril, peito, ombros, pescoço, braços e coxas dos dois lados, antebraço, panturrilha, % de gordura), fotos de progresso (ficam só no aparelho) e gráfico de tendência.
 
 **Registro de alimentos**
 - Base TACO completa (597 alimentos) + suplementos e pratos típicos, com busca por sinônimos regionais (aipim/macaxeira/mandioca).
@@ -24,9 +24,30 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - Favoritos, recentes, refeições salvas, copiar refeição de ontem.
 - Custo por 30 g de proteína para comparar marcas.
 
+**Suplementação**
+- Origem da proteína: quanto vem da comida e quanto de pó (whey, albumina, caseína, proteína vegetal, hipercalórico), no dia e na média da semana.
+- Protocolo de suplementos, vitaminas e minerais e medicamentos, com dose, unidade, vezes ao dia, horários e dias da semana. As doses são marcadas na tela Hoje e a adesão aparece em 7 dias.
+- Modelos prontos: creatina, cafeína, multivitamínico, vitamina D3, ômega 3, B12, magnésio, zinco, vitamina C, cálcio e ferro, cada um com uma explicação curta.
+- Vitaminas e minerais tomados entram no painel de micronutrientes, com aviso quando a soma passa do limite seguro (UL).
+- Medicamentos só são registrados e lembrados: o app não sugere doses.
+
+**Treino (no estilo Hevy)**
+- Biblioteca com mais de 280 exercícios em português (máquinas articuladas e de placa, polias, Smith, barra W, elástico, kettlebell, TRX e funcional), filtro por músculo e por equipamento, e exercícios personalizados.
+- Programas prontos para hipertrofia: Full body 3x, Superior/Inferior 4x, Push/Pull/Legs 6x, ABC, Só máquinas 4x e Glúteos e pernas 4x.
+- Rotinas editáveis (séries, faixa de repetições, descanso) organizadas em pastas.
+- Treino ao vivo: coluna "Anterior", séries de aquecimento, falha e drop, RPE opcional, timer de descanso com vibração.
+- Progressão dupla automática (sugere quando subir carga), recordes (carga, 1RM estimado, volume, melhor carga por repetição) e gráfico de evolução.
+- Séries semanais por músculo comparadas com a faixa de 10–20, sequência semanal e calculadora de anilhas.
+- Ligado à dieta: terminar o treino marca o dia de treino (ciclo de carboidrato) e lembra da proteína pós-treino.
+
+**Aparência**
+- 7 temas em Perfil › Aparência: Padrão, Pixel (Material You), One UI, iOS 26 (vidro líquido), Windows 11 (Fluent), macOS e GNOME (Adwaita).
+- Cada tema tem modo claro e escuro, e o modo Automático segue o aparelho.
+- Os temas reproduzem cores, cantos, espaçamento e efeitos de cada sistema, sem logos nem fontes proprietárias. O vidro do iOS 26 e do macOS usa desfoque real na web; no celular os cartões ficam translúcidos.
+
 **Planejamento e dados**
 - Cardápio automático da semana com comida brasileira e lista de compras em quantidades cruas.
-- Painel de micronutrientes com alvos por sexo e idade (DRIs) e sugestões de alimentos.
+- Painel de micronutrientes com alvos por sexo e idade (DRIs) e sugestões de alimentos. Nutrientes sem dado suficiente nos alimentos do dia (a TACO não traz vitamina D nem B12) aparecem como "sem dados" em vez de 0%.
 - Exportação em PDF e CSV para o nutricionista.
 - Conta por e-mail (código, sem senha), sincronização entre aparelhos, Health Connect e Apple Saúde.
 - LGPD: consentimento, exportar tudo e excluir conta.
@@ -64,7 +85,7 @@ Na web, o OCR usa Tesseract.js e a voz usa o reconhecimento de fala do navegador
    ```
 3. Em Authentication › Providers, deixe o login por e-mail ativo. No template "Magic Link", inclua `{{ .Token }}` para o e-mail trazer o código de 6 dígitos.
 
-O banco tem as tabelas do estado do usuário (sincronização), da base compartilhada de alimentos (um produto vira "conferido" com 2 confirmações), dos relatórios de erro e do uso da IA, todas com RLS. A função `ai` usa o Claude e nunca expõe a chave no app.
+O banco tem as tabelas do estado do usuário (sincronização), da base compartilhada de alimentos (um produto vira "conferido" com 2 confirmações), dos relatórios de erro e do uso da IA, todas com RLS. A função `ai` usa o Claude e nunca expõe a chave no app. Cada ação tem limite diário (grátis/Pro): foto 3/60, tabela 30/200, texto 40/300, coach 5/30.
 
 ## Pagamentos (RevenueCat)
 
@@ -75,8 +96,9 @@ Crie os produtos mensal e anual nas lojas, um entitlement `pro` e uma offering p
 ```
 src/
   app/            telas (Expo Router)
+  components/     componentes visuais e temas (themes.ts, ui.tsx)
   domain/         lógica pura e testada: metas, check-in, TDEE adaptativo, leitor de tabela, receitas,
-                  medidas, cru/cozido, micros, cardápio, relatórios
+                  medidas, cru/cozido, micros, cardápio, relatórios, treino (domain/workout)
   data/           TACO completa (gerada por scripts/import-taco.mjs) e suplementos
   services/       Supabase, sincronização, IA, OCR, Saúde, pagamentos, arquivos, voz
   store/          estado salvo no aparelho (zustand + AsyncStorage)

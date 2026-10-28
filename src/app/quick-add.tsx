@@ -6,7 +6,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Platform, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { Badge, Button, Card, Chips, colors, Muted, parseInput, styles, Title } from '../components/ui';
+import { Badge, Button, Card, Chips, colors, Muted, parseInput, styles, Title, useTheme } from '../components/ui';
 import { defaultMeal, Food, Meal, MEALS, searchFoods, todayIso } from '../domain/foods';
 import { parseFreeText, resolveItems } from '../domain/freeText';
 import { scaleNutrients } from '../domain/nutrients';
@@ -40,10 +40,11 @@ function fromAi(items: AiItem[], foods: Food[]): Item[] {
 }
 
 export default function QuickAddScreen() {
+  useTheme();
   const params = useLocalSearchParams<{ date?: string; mode?: 'text' | 'photo'; meal?: Meal }>();
   const date = params.date ?? todayIso();
   const foods = useAllFoods();
-  const foodList = Object.values(foods);
+  const foodList = Object.values(foods).filter((f) => !f.archived);
   const addEntries = useAppStore((s) => s.addEntries);
   const addFood = useAppStore((s) => s.addFood);
   const aiUsage = useAppStore((s) => s.aiUsage);

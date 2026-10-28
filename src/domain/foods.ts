@@ -30,6 +30,8 @@ export type Food = {
   /** Id na base compartilhada, quando veio de lá (permite confirmar ou apontar erro). */
   sharedId?: string;
   sharedStatus?: 'pending' | 'verified' | 'rejected';
+  /** Excluído pelo usuário mas ainda usado no diário: some das listas, segue valendo no histórico. */
+  archived?: boolean;
   createdAt: string;
 };
 
@@ -140,7 +142,8 @@ const EVERYDAY = [
  * Busca em português com sinônimos regionais (aipim/mandioca/macaxeira) e plural.
  * Ordena: nome que começa com a busca, depois nomes mais curtos (mais genéricos).
  */
-export function searchFoods(foods: Food[], query: string): Food[] {
+export function searchFoods(all: Food[], query: string): Food[] {
+  const foods = all.filter((f) => !f.archived);
   const q = normalizeSearch(query);
   if (!q) return foods;
   const terms = q.split(' ').map((t) => expandTerm(singular(t)).map(stem));

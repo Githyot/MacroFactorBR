@@ -9,6 +9,15 @@ import { corsHeaders, json } from '../_shared/cors.ts';
 
 const MODEL = 'claude-opus-5-5';
 const FREE_PHOTOS_PER_DAY = 3;
+// Limites diários por ação (grátis, Pro). Protegem o custo da IA contra abuso.
+const DAILY_LIMITS: Record<string, [number, number]> = {
+  photo: [FREE_PHOTOS_PER_DAY, 60],
+  label: [30, 200],
+  parse: [40, 300],
+  coach: [5, 30],
+};
+// Base64 de ~6 MB equivale a uma foto de ~4,5 MB, bem acima do que o app envia já comprimido.
+const MAX_IMAGE_BASE64 = 6_000_000;
 
 const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
@@ -114,6 +123,21 @@ Deno.serve(async (req) => {
 
     const body = await req.json();
     const action = body.action as string;
+    if (!(action in DAILY_LIMITS)) return json({ error: 'Ação desconhecida' }, 400);
+
+    // Cota diária por ação, contada antes de chamar a IA.
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
+    const { data: profile } = await admin.from('profiles').select('is_pro').eq('id', userId).single();
+    const today = new Date().toISOString().slice(0, 10);
+    const { data: usage } = await admin.from('ai_usage').select('count').eq('user_id', userId).eq('day', today).eq('kind', action).maybeSingle();
+    const used = usage?.count ?? 0;
+    const [freeLimit, proLimit] = DAILY_LIMITS[action];
+    const limit = profile?.is_pro ? proLimit : freeLimit;
+    if (used >= limit) {
+      const what = action === 'photo' ? 'fotos' : 'pedidos desse tipo';
+      return json({ error: `Limite de ${limit} ${what} por dia${profile?.is_pro ? '' : ' no plano grátis'}.` }, 429);
+    }
+    const countUse = () => admin.from('ai_usage').upsert({ user_id: userId, day: today, kind: action, count: used + 1 });
 
     if (action === 'label') {
       const text = String(body.text ?? '').slice(0, 8000);
@@ -124,32 +148,27 @@ Deno.serve(async (req) => {
         LABEL_SCHEMA,
         'low',
       );
+      await countUse();
       return json(result);
     }
 
     if (action === 'photo') {
-      // Cota do plano grátis: fotos por dia.
-      const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!);
-      const { data: profile } = await admin.from('profiles').select('is_pro').eq('id', userId).single();
-      const today = new Date().toISOString().slice(0, 10);
-      const { data: usage } = await admin.from('ai_usage').select('count').eq('user_id', userId).eq('day', today).eq('kind', 'photo').maybeSingle();
-      const used = usage?.count ?? 0;
-      if (!profile?.is_pro && used >= FREE_PHOTOS_PER_DAY) {
-        return json({ error: `Limite de ${FREE_PHOTOS_PER_DAY} fotos por dia no plano grátis.` }, 429);
-      }
+      const image = String(body.imageBase64 ?? '');
+      if (!image) return json({ error: 'Foto ausente.' }, 400);
+      if (image.length > MAX_IMAGE_BASE64) return json({ error: 'Foto grande demais. Tente de novo com menos resolução.' }, 413);
       const mediaType = ['image/jpeg', 'image/png', 'image/webp'].includes(body.mediaType) ? body.mediaType : 'image/jpeg';
       const result = await ask(
         `${SYSTEM_BASE} Identifique cada alimento do prato na foto e estime o peso em gramas pela proporção do prato (prato raso ~24 cm). ` +
           'Pratos brasileiros comuns: arroz, feijão, carne, frango, farofa, salada, ovo. Estime kcal e macros de cada item. ' +
           'Seja conservador e marque a confiança.',
         [
-          { type: 'image', source: { type: 'base64', media_type: mediaType, data: String(body.imageBase64 ?? '') } },
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: image } },
           { type: 'text', text: String(body.hint ?? 'Estime os alimentos deste prato.') },
         ],
         ITEMS_SCHEMA,
         'medium',
       );
-      await admin.from('ai_usage').upsert({ user_id: userId, day: today, kind: 'photo', count: used + 1 });
+      await countUse();
       return json(result);
     }
 
@@ -162,6 +181,7 @@ Deno.serve(async (req) => {
         ITEMS_SCHEMA,
         'low',
       );
+      await countUse();
       return json(result);
     }
 
@@ -173,6 +193,7 @@ Deno.serve(async (req) => {
         COACH_SCHEMA,
         'low',
       );
+      await countUse();
       return json(result);
     }
 

@@ -2,13 +2,14 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Share, Text, TextInput, View } from 'react-native';
 
-import { Button, Card, colors, Field, LinkText, Muted, parseInput, styles, Title } from '../../components/ui';
+import { Button, Card, colors, Field, LinkText, Muted, parseInput, styles, Title, useTheme } from '../../components/ui';
 import { searchFoods } from '../../domain/foods';
 import { scaleNutrients } from '../../domain/nutrients';
 import { encodeRecipe, RecipeIngredient, recipeFinalWeight, recipeTotals } from '../../domain/recipes';
 import { useAllFoods, useAppStore } from '../../store/useAppStore';
 
 export default function RecipeScreen() {
+  useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const existing = useAppStore((s) => (id && id !== 'new' ? s.recipes[id] : undefined));
   const saveRecipe = useAppStore((s) => s.saveRecipe);
