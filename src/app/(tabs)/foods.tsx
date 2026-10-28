@@ -2,7 +2,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { Badge, Button, Card, colors, LinkText, Muted, styles } from '../../components/ui';
+import { Badge, Button, Card, colors, LinkText, Muted, styles, useTheme } from '../../components/ui';
 import { Food, Meal, MEALS, recentFoodIds, searchFoods, todayIso } from '../../domain/foods';
 import { decodeRecipe } from '../../domain/recipes';
 import { useAllFoods, useAppStore } from '../../store/useAppStore';
@@ -30,6 +30,7 @@ const SEGMENTS: { value: Segment; label: string }[] = [
 ];
 
 export default function FoodsScreen() {
+  useTheme();
   const params = useLocalSearchParams<{ meal?: Meal; date?: string }>();
   const meal = params.meal;
   const date = params.date ?? todayIso();

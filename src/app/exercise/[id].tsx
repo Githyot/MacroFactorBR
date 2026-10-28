@@ -2,7 +2,7 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Card, colors, Field, Muted, parseInput, styles, Title } from '../../components/ui';
+import { Card, colors, Field, Muted, parseInput, styles, Title, useTheme } from '../../components/ui';
 import { EQUIPMENT_LABEL, MUSCLE_LABEL } from '../../domain/workout/exercises';
 import { estimate1RM, isWorkingSet, personalRecords, platesPerSide, previousSets, suggestNext } from '../../domain/workout/training';
 import { useAllExercises, useAppStore } from '../../store/useAppStore';
@@ -10,6 +10,7 @@ import { useAllExercises, useAppStore } from '../../store/useAppStore';
 const kg = (n: number) => `${String(Math.round(n * 10) / 10).replace('.', ',')} kg`;
 
 export default function ExerciseDetail() {
+  useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const exercises = useAllExercises();
   const workouts = useAppStore((s) => s.workouts);
@@ -85,7 +86,7 @@ export default function ExerciseDetail() {
                 {Object.entries(pr.byReps)
                   .sort((a, b) => Number(a[0]) - Number(b[0]))
                   .map(([reps, w]) => (
-                    <View key={reps} style={{ backgroundColor: '#EEF2F0', borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
+                    <View key={reps} style={{ backgroundColor: colors.cardAlt, borderRadius: 8, paddingHorizontal: 8, paddingVertical: 4 }}>
                       <Text style={{ color: colors.text, fontSize: 13 }}>
                         {reps}× {kg(w)}
                       </Text>
@@ -105,7 +106,7 @@ export default function ExerciseDetail() {
               // Escala a partir de um pouco abaixo do mínimo para a variação aparecer.
               const floor = minRM * 0.9;
               const h = s.best1RM > 0 ? 12 + ((s.best1RM - floor) / Math.max(1, maxRM - floor)) * 100 : 4;
-              return <View key={s.id} style={{ flex: 1, height: h, borderRadius: 4, backgroundColor: s.best1RM === maxRM ? colors.primary : '#9CC9B1' }} />;
+              return <View key={s.id} style={{ flex: 1, height: h, borderRadius: 4, backgroundColor: s.best1RM === maxRM ? colors.primary : colors.primarySoft }} />;
             })}
           </View>
           <Muted style={{ marginTop: 6 }}>

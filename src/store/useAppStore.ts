@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo, useSyncExternalStore } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
+import type { ColorMode, ThemeId } from '../components/themes';
 
 import { TACO_FOODS } from '../data/taco';
 import { WeightEntry } from '../domain/adaptiveTdee';
@@ -51,6 +52,9 @@ export type Settings = {
   proActive?: boolean;
   healthSync?: boolean;
   lastSyncAt?: string;
+  /** Visual do app (estilo de cada sistema) e modo claro/escuro. */
+  themeId?: ThemeId;
+  colorMode?: ColorMode;
 };
 
 /** Dados que vão para o aparelho e para a nuvem. */

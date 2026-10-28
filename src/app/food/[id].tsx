@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Badge, Button, Card, Chips, colors, Field, LinkText, Muted, parseInput, styles, Title, ToggleRow } from '../../components/ui';
+import { Badge, Button, Card, Chips, colors, Field, LinkText, Muted, parseInput, styles, Title, ToggleRow, useTheme } from '../../components/ui';
 import { rawFromCooked, yieldFor } from '../../domain/cooking';
 import { costPer30gProtein, defaultMeal, Meal, MEALS, proteinPerReal, todayIso } from '../../domain/foods';
 import { computeHighIn, HIGH_IN_LABEL } from '../../domain/labelFront';
@@ -15,6 +15,7 @@ import { useAllFoods, useAppStore } from '../../store/useAppStore';
 const fmt = (n: number, d = 1) => n.toFixed(d).replace('.', ',');
 
 export default function FoodDetailScreen() {
+  useTheme();
   const params = useLocalSearchParams<{ id: string; meal?: Meal; date?: string }>();
   const foods = useAllFoods();
   const addEntry = useAppStore((s) => s.addEntry);

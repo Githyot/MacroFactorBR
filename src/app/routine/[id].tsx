@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { Button, Card, colors, LinkText, Muted, parseInput, styles } from '../../components/ui';
+import { Button, Card, colors, LinkText, Muted, parseInput, styles, useTheme } from '../../components/ui';
 import { RoutineExercise, workoutFromRoutine } from '../../domain/workout/training';
 import { newId, useAllExercises, useAppStore } from '../../store/useAppStore';
 
@@ -18,13 +18,14 @@ function Small({ value, onChange, label }: { value: number; onChange: (n: number
           const n = parseInput(t);
           if (n !== undefined) onChange(Math.round(n));
         }}
-        style={{ width: 52, textAlign: 'center', paddingVertical: 6, borderRadius: 8, backgroundColor: '#EEF2F0', color: colors.text, fontSize: 15 }}
+        style={{ width: 52, textAlign: 'center', paddingVertical: 6, borderRadius: 8, backgroundColor: colors.cardAlt, color: colors.text, fontSize: 15 }}
       />
     </View>
   );
 }
 
 export default function RoutineEditor() {
+  useTheme();
   const { id } = useLocalSearchParams<{ id: string }>();
   const routine = useAppStore((s) => (id ? s.routines[id] : undefined));
   const saveRoutine = useAppStore((s) => s.saveRoutine);

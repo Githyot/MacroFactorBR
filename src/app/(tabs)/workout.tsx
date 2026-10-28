@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, colors, LinkText, Muted, ProgressBar, styles, Title } from '../../components/ui';
+import { Button, Card, colors, LinkText, Muted, ProgressBar, styles, Title, useTheme } from '../../components/ui';
 import { addDays, todayIso } from '../../domain/foods';
 import { Muscle, MUSCLE_LABEL } from '../../domain/workout/exercises';
 import { PROGRAMS } from '../../domain/workout/programs';
@@ -21,6 +21,7 @@ const LEVEL_LABEL = { iniciante: 'Iniciante', intermediario: 'Intermediário', a
 const fmtKg = (kg: number) => Math.round(kg).toLocaleString('pt-BR');
 
 export default function WorkoutTab() {
+  useTheme();
   const active = useAppStore((s) => s.activeWorkout);
   const workouts = useAppStore((s) => s.workouts);
   const routines = useAppStore((s) => s.routines);

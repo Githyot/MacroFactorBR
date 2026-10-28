@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, colors, LinkText, Muted, styles, Title } from '../../components/ui';
+import { Button, Card, colors, LinkText, Muted, styles, Title, useTheme } from '../../components/ui';
 import { PROTEIN_PER_MEAL_PER_KG } from '../../domain/targets';
 import {
   completedSets,
@@ -17,6 +17,7 @@ import { useAllExercises, useAppStore } from '../../store/useAppStore';
 const kgText = (n: number) => `${String(Math.round(n * 10) / 10).replace('.', ',')} kg`;
 
 export default function WorkoutDetail() {
+  useTheme();
   const { id, fresh } = useLocalSearchParams<{ id: string; fresh?: string }>();
   const workouts = useAppStore((s) => s.workouts);
   const profile = useAppStore((s) => s.profile);

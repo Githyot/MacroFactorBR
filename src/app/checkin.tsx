@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, colors, Muted, styles, Title } from '../components/ui';
+import { Button, Card, colors, Muted, styles, Title, useTheme } from '../components/ui';
 import { runCheckIn } from '../domain/checkin';
 import { explainCheckIn } from '../domain/coach';
 import { todayIso } from '../domain/foods';
@@ -15,6 +15,7 @@ import { useAppStore } from '../store/useAppStore';
 const fmtG = (kg: number) => `${kg > 0 ? '+' : ''}${Math.round(kg * 1000)} g`;
 
 export default function CheckInScreen() {
+  useTheme();
   const data = useTargets();
   const applyCheckIn = useAppStore((s) => s.applyCheckIn);
   const history = useAppStore((s) => s.checkIns);

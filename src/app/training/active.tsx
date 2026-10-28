@@ -5,7 +5,7 @@ import { router, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, Vibration, View } from 'react-native';
 
-import { Button, Card, colors, LinkText, Muted, parseInput, styles } from '../../components/ui';
+import { Button, Card, colors, LinkText, Muted, parseInput, styles, useTheme } from '../../components/ui';
 import { Exercise } from '../../domain/workout/exercises';
 import {
   completedSets,
@@ -47,7 +47,7 @@ function NumInput({ value, placeholder, onChange, width = 64 }: { value?: number
     <TextInput
       value={text}
       placeholder={placeholder}
-      placeholderTextColor="#A9B4AE"
+      placeholderTextColor={colors.muted}
       keyboardType="decimal-pad"
       selectTextOnFocus
       onChangeText={(t) => {
@@ -59,7 +59,7 @@ function NumInput({ value, placeholder, onChange, width = 64 }: { value?: number
         textAlign: 'center',
         paddingVertical: 8,
         borderRadius: 8,
-        backgroundColor: '#EEF2F0',
+        backgroundColor: colors.cardAlt,
         color: colors.text,
         fontSize: 16,
         fontVariant: ['tabular-nums'],
@@ -186,11 +186,11 @@ function ExerciseBlock({
                 borderRadius: 8,
                 alignItems: 'center',
                 justifyContent: 'center',
-                backgroundColor: s.done ? colors.primary : '#EEF2F0',
+                backgroundColor: s.done ? colors.primary : colors.cardAlt,
               }}
               accessibilityLabel={s.done ? 'Desmarcar série' : 'Concluir série'}
             >
-              <Text style={{ color: s.done ? '#fff' : colors.muted, fontWeight: '800' }}>✓</Text>
+              <Text style={{ color: s.done ? colors.onPrimary : colors.muted, fontWeight: '800' }}>✓</Text>
             </Pressable>
           </View>
         );
@@ -202,7 +202,7 @@ function ExerciseBlock({
             return { ...e, sets: [...e.sets, { type: 'normal', weightKg: last?.weightKg, done: false }] };
           })
         }
-        style={{ marginTop: 8, paddingVertical: 8, borderRadius: 8, backgroundColor: '#EEF2F0', alignItems: 'center' }}
+        style={{ marginTop: 8, paddingVertical: 8, borderRadius: 8, backgroundColor: colors.cardAlt, alignItems: 'center' }}
       >
         <Text style={{ color: colors.text, fontWeight: '600' }}>+ Adicionar série</Text>
       </Pressable>
@@ -212,6 +212,7 @@ function ExerciseBlock({
 }
 
 export default function ActiveWorkoutScreen() {
+  useTheme();
   const active = useAppStore((s) => s.activeWorkout);
   const history = useAppStore((s) => s.workouts);
   const update = useAppStore((s) => s.updateActiveWorkout);
@@ -301,7 +302,7 @@ export default function ActiveWorkoutScreen() {
       </ScrollView>
 
       <Modal visible={confirm !== null} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', padding: 16 }}>
+        <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 16 }}>
           <Card style={{ maxWidth: 480, width: '100%', alignSelf: 'center' }}>
             <Text style={{ color: colors.text, marginBottom: 10 }}>
               {confirm === 'discard'
@@ -340,7 +341,7 @@ export default function ActiveWorkoutScreen() {
             right: 12,
             bottom: 16,
             borderRadius: 14,
-            backgroundColor: colors.text,
+            backgroundColor: colors.inverse,
             padding: 14,
             flexDirection: 'row',
             alignItems: 'center',
@@ -350,8 +351,8 @@ export default function ActiveWorkoutScreen() {
           }}
         >
           <View>
-            <Text style={{ color: '#B7C4BD', fontSize: 12 }}>DESCANSO</Text>
-            <Text style={{ color: '#fff', fontSize: 26, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{mmss(restLeft)}</Text>
+            <Text style={{ color: colors.inverseMuted, fontSize: 12 }}>DESCANSO</Text>
+            <Text style={{ color: colors.onInverse, fontSize: 26, fontWeight: '800', fontVariant: ['tabular-nums'] }}>{mmss(restLeft)}</Text>
           </View>
           <View style={{ flexDirection: 'row', gap: 8 }}>
             {[
@@ -359,8 +360,8 @@ export default function ActiveWorkoutScreen() {
               { label: '+15', fn: () => setRestEndsAt((t) => (t ? t + 15000 : t)) },
               { label: 'Pular', fn: () => setRestEndsAt(null) },
             ].map((b) => (
-              <Pressable key={b.label} onPress={b.fn} style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#2C3832' }}>
-                <Text style={{ color: '#fff', fontWeight: '700' }}>{b.label}</Text>
+              <Pressable key={b.label} onPress={b.fn} style={{ paddingVertical: 10, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(128,128,128,0.28)' }}>
+                <Text style={{ color: colors.onInverse, fontWeight: '700' }}>{b.label}</Text>
               </Pressable>
             ))}
           </View>

@@ -1,23 +1,57 @@
-import { ReactNode } from 'react';
+import { ReactNode, useSyncExternalStore } from 'react';
 import { Link, Href } from 'expo-router';
-import { Pressable, StyleSheet, Switch, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
+import { Appearance, Platform, Pressable, Switch, Text, TextInput, TextInputProps, TextStyle, View, ViewStyle } from 'react-native';
 
-export const colors = {
-  bg: '#F4F6F5',
-  card: '#FFFFFF',
-  text: '#16201B',
-  muted: '#5F6B65',
-  border: '#DDE3E0',
-  primary: '#127A4B',
-  primarySoft: '#E3F2EA',
-  protein: '#127A4B',
-  carbs: '#C27C0E',
-  fat: '#7A4FB8',
-  kcal: '#16201B',
-  danger: '#B3261E',
-  warn: '#8A5A00',
-  warnSoft: '#FFF4D6',
-};
+import { useAppStore } from '../store/useAppStore';
+import { ColorMode, Palette, ThemeDef, THEMES } from './themes';
+
+// Cores e estilos são objetos estáveis que o tema troca por dentro. As telas chamam
+// useTheme() para redesenhar quando o tema ou o modo claro/escuro muda.
+export const colors: Palette = { ...THEMES.padrao.light };
+
+let current = { def: THEMES.padrao, dark: false, key: '' };
+const listeners = new Set<() => void>();
+
+function applyTheme(def: ThemeDef, dark: boolean) {
+  const key = `${def.id}-${dark ? 'dark' : 'light'}`;
+  if (key === current.key) return;
+  current = { def, dark, key };
+  Object.assign(colors, dark ? def.dark : def.light);
+  Object.assign(styles, makeStyles(colors, def));
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    // No vidro, o degradê fica no fundo da página e as telas ficam transparentes.
+    const g = def.glass?.[dark ? 'dark' : 'light'];
+    document.body.style.background = g ? `linear-gradient(160deg, ${g[0]} 0%, ${g[1]} 100%) fixed` : colors.bg;
+    document.body.style.colorScheme = dark ? 'dark' : 'light';
+    if (def.webFont) document.body.style.fontFamily = def.webFont;
+    else document.body.style.removeProperty('font-family');
+  }
+  listeners.forEach((l) => l());
+}
+
+function syncTheme() {
+  const { themeId, colorMode } = useAppStore.getState().settings;
+  const mode: ColorMode = colorMode ?? 'auto';
+  const dark = mode === 'dark' || (mode === 'auto' && Appearance.getColorScheme() === 'dark');
+  applyTheme(THEMES[themeId ?? 'padrao'] ?? THEMES.padrao, dark);
+}
+
+/** Tema atual. Chamar no topo de cada tela faz ela redesenhar quando o tema muda. */
+export function useTheme() {
+  useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    () => current.key,
+    () => current.key,
+  );
+  return current;
+}
+
+/** Vidro só na web, onde há desfoque de fundo; no celular fica a cor translúcida. */
+export const isGlass = () => Boolean(current.def.glass) && Platform.OS === 'web';
+
 
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
   return <View style={[styles.card, style]}>{children}</View>;
@@ -54,7 +88,7 @@ export function Button({
         (pressed || disabled) && { opacity: 0.6 },
       ]}
     >
-      <Text style={[styles.buttonText, variant === 'secondary' && { color: colors.primary }]}>{title}</Text>
+      <Text style={[styles.buttonText, variant === 'secondary' && { color: colors.onPrimarySoft }]}>{title}</Text>
     </Pressable>
   );
 }
@@ -123,19 +157,19 @@ export function ToggleRow({ label, value, onChange, hint }: { label: string; val
   return (
     <View style={[styles.rowBetween, { marginBottom: 8 }]}>
       <View style={{ flex: 1, paddingRight: 12 }}>
-        <Text style={{ color: colors.text, fontSize: 15 }}>{label}</Text>
+        <Text style={[styles.text, { fontSize: 15 }]}>{label}</Text>
         {hint ? <Text style={styles.muted}>{hint}</Text> : null}
       </View>
-      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.primary }} />
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.primary, false: colors.track }} thumbColor={value ? colors.onPrimary : undefined} />
     </View>
   );
 }
 
 export function Badge({ text, tone = 'neutral' }: { text: string; tone?: 'neutral' | 'warn' | 'danger' | 'good' }) {
-  const bg = { neutral: '#E8ECEA', warn: colors.warnSoft, danger: '#FDE7E5', good: colors.primarySoft }[tone];
-  const fg = { neutral: colors.muted, warn: colors.warn, danger: colors.danger, good: colors.primary }[tone];
+  const bg = { neutral: colors.cardAlt, warn: colors.warnSoft, danger: colors.dangerSoft, good: colors.primarySoft }[tone];
+  const fg = { neutral: colors.muted, warn: colors.warn, danger: colors.danger, good: colors.onPrimarySoft }[tone];
   return (
-    <View style={{ backgroundColor: bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' }}>
+    <View style={{ backgroundColor: bg, borderRadius: Math.min(6, current.def.shape.radiusChip), paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' }}>
       <Text style={{ color: fg, fontSize: 12, fontWeight: '700' }}>{text}</Text>
     </View>
   );
@@ -145,12 +179,14 @@ export function Badge({ text, tone = 'neutral' }: { text: string; tone?: 'neutra
 export function NavRow({ href, title, subtitle }: { href: Href; title: string; subtitle?: string }) {
   return (
     <Link href={href} asChild>
-      <Pressable style={({ pressed }) => [styles.rowBetween, { paddingVertical: 10 }, pressed && { opacity: 0.6 }]}>
-        <View style={{ flex: 1 }}>
-          <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>{title}</Text>
-          {subtitle ? <Text style={styles.muted}>{subtitle}</Text> : null}
+      <Pressable style={({ pressed }) => ({ paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
+        <View style={[styles.rowBetween, { marginBottom: 0 }]}>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.text, { fontSize: 15, fontWeight: '600' }]}>{title}</Text>
+            {subtitle ? <Text style={styles.muted}>{subtitle}</Text> : null}
+          </View>
+          <Text style={{ color: colors.muted, fontSize: 18, marginLeft: 8 }}>›</Text>
         </View>
-        <Text style={{ color: colors.muted, fontSize: 18 }}>›</Text>
       </Pressable>
     </Link>
   );
@@ -170,32 +206,62 @@ export function parseInput(s: string): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-export const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 48, gap: 12, maxWidth: 720, width: '100%', alignSelf: 'center' },
-  card: { backgroundColor: colors.card, borderRadius: 14, padding: 16, borderWidth: 1, borderColor: colors.border },
-  title: { fontSize: 18, fontWeight: '700', color: colors.text, marginBottom: 8 },
-  muted: { color: colors.muted, fontSize: 14 },
-  button: { backgroundColor: colors.primary, paddingVertical: 13, paddingHorizontal: 16, borderRadius: 10, alignItems: 'center' },
-  buttonSecondary: { backgroundColor: colors.primarySoft },
-  buttonDanger: { backgroundColor: colors.danger },
-  buttonText: { color: '#fff', fontWeight: '700', fontSize: 15 },
-  field: { marginBottom: 12, flex: 1, minWidth: 140 },
-  fieldLabel: { fontSize: 13, color: colors.muted, marginBottom: 4 },
-  inputRow: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: colors.border, borderRadius: 10, backgroundColor: '#fff' },
-  input: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: colors.text },
-  suffix: { paddingRight: 12, color: colors.muted },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
-  chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, borderWidth: 1, borderColor: colors.border, backgroundColor: '#fff' },
-  chipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  chipText: { color: colors.text, fontSize: 14 },
-  chipTextActive: { color: '#fff', fontWeight: '600' },
-  track: { height: 8, borderRadius: 4, backgroundColor: '#E8ECEA', overflow: 'hidden' },
-  fill: { height: 8, borderRadius: 4 },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
-  row: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
-  macroLabel: { fontSize: 15, fontWeight: '600', color: colors.text },
-  macroValue: { fontSize: 14, color: colors.muted, fontVariant: ['tabular-nums'] },
-  warning: { backgroundColor: colors.warnSoft, borderRadius: 10, padding: 12 },
-  warningText: { color: colors.warn, fontSize: 14 },
-});
+type Named<T> = { [K in keyof T]: ViewStyle | TextStyle };
+const sheet = <T extends Named<T>>(x: T) => x;
+
+function makeStyles(c: Palette, def: ThemeDef) {
+  const sh = def.shape;
+  const glass = Boolean(def.glass) && Platform.OS === 'web';
+  const web = Platform.OS === 'web';
+  const shadow: ViewStyle = sh.cardShadow
+    ? { boxShadow: glass ? '0 8px 32px rgba(0,0,0,0.10)' : current.dark ? '0 1px 2px rgba(0,0,0,0.5)' : '0 1px 3px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.03)' }
+    : {};
+  const blur = glass ? ({ backdropFilter: `blur(${def.glass!.blur}px) saturate(180%)` } as ViewStyle) : {};
+  const font: TextStyle = web && def.webFont ? { fontFamily: def.webFont } : {};
+  return sheet({
+    screen: { flex: 1, backgroundColor: glass ? 'transparent' : c.bg },
+    content: { padding: sh.padding, paddingBottom: 48, gap: sh.gap, maxWidth: 720, width: '100%', alignSelf: 'center' },
+    card: { backgroundColor: c.card, borderRadius: sh.radiusCard, padding: 16, borderWidth: sh.cardBorder, borderColor: c.border, ...shadow, ...blur },
+    title: { fontSize: sh.titleSize, fontWeight: sh.titleWeight, color: c.text, marginBottom: 8, ...font },
+    muted: { color: c.muted, fontSize: 14, ...font },
+    button: { backgroundColor: c.primary, paddingVertical: sh.buttonPadV, paddingHorizontal: 18, borderRadius: sh.radiusButton, alignItems: 'center' },
+    buttonSecondary: { backgroundColor: c.primarySoft },
+    buttonDanger: { backgroundColor: c.danger },
+    buttonText: { color: c.onPrimary, fontWeight: def.id === 'windows' ? '600' : '700', fontSize: 15, ...font },
+    field: { marginBottom: 12, flex: 1, minWidth: 140 },
+    fieldLabel: { fontSize: 13, color: c.muted, marginBottom: 4, ...font },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      borderWidth: sh.inputBorder ? 1 : 0,
+      borderColor: c.border,
+      borderRadius: sh.radiusInput,
+      backgroundColor: c.inputBg,
+      ...(def.id === 'windows' ? { borderBottomWidth: 2, borderBottomColor: c.muted } : {}),
+    },
+    input: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: c.text, ...font },
+    suffix: { paddingRight: 12, color: c.muted },
+    chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+    chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: sh.radiusChip, borderWidth: 1, borderColor: c.border, backgroundColor: glass ? c.cardAlt : c.inputBg },
+    chipActive: { backgroundColor: def.id === 'pixel' ? c.primarySoft : c.primary, borderColor: def.id === 'pixel' ? c.primarySoft : c.primary },
+    chipText: { color: c.text, fontSize: 14, ...font },
+    chipTextActive: { color: def.id === 'pixel' ? c.onPrimarySoft : c.onPrimary, fontWeight: '600' },
+    track: { height: 8, borderRadius: 4, backgroundColor: c.track, overflow: 'hidden' },
+    fill: { height: 8, borderRadius: 4 },
+    rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+    row: { flexDirection: 'row', gap: 12, flexWrap: 'wrap' },
+    macroLabel: { fontSize: 15, fontWeight: '600', color: c.text, ...font },
+    macroValue: { fontSize: 14, color: c.muted, fontVariant: ['tabular-nums'], ...font },
+    warning: { backgroundColor: c.warnSoft, borderRadius: sh.radiusSmall, padding: 12 },
+    warningText: { color: c.warn, fontSize: 14 },
+    /** Fundo neutro pequeno (séries, contadores, pílulas). */
+    soft: { backgroundColor: c.cardAlt, borderRadius: sh.radiusSmall },
+    text: { color: c.text, ...font },
+  });
+}
+
+export const styles = makeStyles(colors, THEMES.padrao);
+
+useAppStore.subscribe(syncTheme);
+Appearance.addChangeListener(syncTheme);
+syncTheme();

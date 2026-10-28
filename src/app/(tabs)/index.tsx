@@ -2,7 +2,7 @@ import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Badge, Button, Card, colors, LinkText, MacroRow, Muted, NavRow, ProgressBar, styles, Title, ToggleRow } from '../../components/ui';
+import { Badge, Button, Card, colors, LinkText, MacroRow, Muted, NavRow, ProgressBar, styles, Title, ToggleRow, useTheme } from '../../components/ui';
 import { isCheckInDue } from '../../domain/checkin';
 import { dailyTips } from '../../domain/coach';
 import { addDays, entryNutrients, MEALS, todayIso } from '../../domain/foods';
@@ -20,6 +20,7 @@ function dayLabel(date: string): string {
 }
 
 export default function TodayScreen() {
+  useTheme();
   const hydrated = useHydrated();
   const [date, setDate] = useState(todayIso());
   const day = useDay(date);

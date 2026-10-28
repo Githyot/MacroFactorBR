@@ -2,7 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, Chips, colors, Muted, ProgressBar, styles } from '../components/ui';
+import { Button, Card, Chips, colors, Muted, ProgressBar, styles, useTheme } from '../components/ui';
 import { addDays, dayTotals, todayIso } from '../domain/foods';
 import { microCoverage, microStatus, microTargets, suggestFoodsFor } from '../domain/micros';
 import { formatAmount, NUTRIENT_BY_KEY, Nutrients, scaleNutrients } from '../domain/nutrients';
@@ -12,6 +12,7 @@ import { usePro } from '../hooks/usePro';
 import { useAllFoods, useAppStore } from '../store/useAppStore';
 
 export default function MicrosScreen() {
+  useTheme();
   const params = useLocalSearchParams<{ date?: string }>();
   const date = params.date ?? todayIso();
   const profile = useAppStore((s) => s.profile);

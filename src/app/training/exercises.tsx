@@ -5,11 +5,12 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
-import { Button, Card, Chips, colors, Field, Muted, styles, Title } from '../../components/ui';
+import { Button, Card, Chips, colors, Field, Muted, styles, Title, useTheme } from '../../components/ui';
 import { Equipment, EQUIPMENT_LABEL, ExerciseKind, Muscle, MUSCLE_LABEL, searchExercises } from '../../domain/workout/exercises';
 import { useAllExercises, useAppStore } from '../../store/useAppStore';
 
 export default function ExerciseLibrary() {
+  useTheme();
   const params = useLocalSearchParams<{ pick?: 'active' | 'routine'; routine?: string }>();
   const all = useAllExercises();
   const updateActive = useAppStore((s) => s.updateActiveWorkout);

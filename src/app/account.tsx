@@ -2,7 +2,7 @@ import { router, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, colors, Field, Muted, styles, Title, ToggleRow } from '../components/ui';
+import { Button, Card, colors, Field, Muted, styles, Title, ToggleRow, useTheme } from '../components/ui';
 import { todayIso } from '../domain/foods';
 import { hasBackend } from '../services/config';
 import { shareText } from '../services/files';
@@ -12,6 +12,7 @@ import { pullAndMerge } from '../services/sync';
 import { pickPersisted, useAppStore } from '../store/useAppStore';
 
 export default function AccountScreen() {
+  useTheme();
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);
   const resetAll = useAppStore((s) => s.resetAll);

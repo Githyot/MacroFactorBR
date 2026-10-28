@@ -2,7 +2,8 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, Chips, colors, Field, Muted, NavRow, parseInput, styles, Title, ToggleRow } from '../../components/ui';
+import { ThemePicker } from '../../components/ThemePicker';
+import { Button, Card, Chips, colors, Field, Muted, NavRow, parseInput, styles, Title, ToggleRow, useTheme } from '../../components/ui';
 import { todayIso } from '../../domain/foods';
 import {
   ACTIVITY_FACTORS,
@@ -38,6 +39,7 @@ function formatBirth(iso?: string): string {
 }
 
 export default function ProfileScreen() {
+  useTheme();
   const profile = useAppStore((s) => s.profile);
   const saveProfile = useAppStore((s) => s.saveProfile);
   const logWeight = useAppStore((s) => s.logWeight);
@@ -203,6 +205,10 @@ export default function ProfileScreen() {
           <NavRow href="/pro" title="MacroFactorBR Pro" subtitle="Recursos avançados" />
         </Card>
       ) : null}
+
+      <Card>
+        <ThemePicker />
+      </Card>
     </ScrollView>
   );
 }

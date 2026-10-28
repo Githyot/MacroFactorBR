@@ -33,6 +33,11 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - Séries semanais por músculo comparadas com a faixa de 10–20, sequência semanal e calculadora de anilhas.
 - Ligado à dieta: terminar o treino marca o dia de treino (ciclo de carboidrato) e lembra da proteína pós-treino.
 
+**Aparência**
+- 7 temas em Perfil › Aparência: Padrão, Pixel (Material You), One UI, iOS 26 (vidro líquido), Windows 11 (Fluent), macOS e GNOME (Adwaita).
+- Cada tema tem modo claro e escuro, e o modo Automático segue o aparelho.
+- Os temas reproduzem cores, cantos, espaçamento e efeitos de cada sistema, sem logos nem fontes proprietárias. O vidro do iOS 26 e do macOS usa desfoque real na web; no celular os cartões ficam translúcidos.
+
 **Planejamento e dados**
 - Cardápio automático da semana com comida brasileira e lista de compras em quantidades cruas.
 - Painel de micronutrientes com alvos por sexo e idade (DRIs) e sugestões de alimentos. Nutrientes sem dado suficiente nos alimentos do dia (a TACO não traz vitamina D nem B12) aparecem como "sem dados" em vez de 0%.
@@ -84,6 +89,7 @@ Crie os produtos mensal e anual nas lojas, um entitlement `pro` e uma offering p
 ```
 src/
   app/            telas (Expo Router)
+  components/     componentes visuais e temas (themes.ts, ui.tsx)
   domain/         lógica pura e testada: metas, check-in, TDEE adaptativo, leitor de tabela, receitas,
                   medidas, cru/cozido, micros, cardápio, relatórios, treino (domain/workout)
   data/           TACO completa (gerada por scripts/import-taco.mjs) e suplementos
