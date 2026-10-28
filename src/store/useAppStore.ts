@@ -1,0 +1,267 @@
+// Estado do app salvo no próprio aparelho (funciona offline em Android, iOS e web).
+// Com login, o mesmo estado é sincronizado com o Supabase (src/services/sync.ts).
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useMemo, useSyncExternalStore } from 'react';
+import { create } from 'zustand';
+import { createJSONStorage, persist } from 'zustand/middleware';
+
+import { TACO_FOODS } from '../data/taco';
+import { WeightEntry } from '../domain/adaptiveTdee';
+import { CheckIn } from '../domain/checkin';
+import { DiaryEntry, Food, Meal } from '../domain/foods';
+import { leucinePer100g } from '../domain/protein';
+import { Recipe, recipeToFood } from '../domain/recipes';
+import { Profile } from '../domain/targets';
+
+export function newId(): string {
+  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+export type BodyMeasurement = {
+  date: string;
+  waistCm?: number;
+  chestCm?: number;
+  armCm?: number;
+  thighCm?: number;
+  hipCm?: number;
+  bodyFatPct?: number;
+};
+
+export type ProgressPhoto = { id: string; date: string; uri: string; pose?: 'frente' | 'lado' | 'costas' };
+export type SavedMeal = { id: string; name: string; items: { foodId: string; grams: number; note?: string }[] };
+export type Price = { priceBrl: number; packageGrams: number };
+
+export type Settings = {
+  /** Data do aceite de uso de dados de saúde (LGPD). */
+  consentAt?: string;
+  /** Pro de teste enquanto o pagamento não está configurado. */
+  proOverride?: boolean;
+  /** Assinatura ativa confirmada pela loja ou pelo servidor. */
+  proActive?: boolean;
+  healthSync?: boolean;
+  lastSyncAt?: string;
+};
+
+/** Dados que vão para o aparelho e para a nuvem. */
+export type PersistedState = {
+  profile?: Profile;
+  customFoods: Record<string, Food>;
+  entries: DiaryEntry[];
+  weights: WeightEntry[];
+  recipes: Record<string, Recipe>;
+  favorites: string[];
+  savedMeals: SavedMeal[];
+  trainingDays: Record<string, boolean>;
+  habits: Record<string, { creatine?: boolean }>;
+  checkIns: CheckIn[];
+  measurements: BodyMeasurement[];
+  photos: ProgressPhoto[];
+  prices: Record<string, Price>;
+  aiUsage: Record<string, number>;
+  settings: Settings;
+  updatedAt: string;
+};
+
+type Actions = {
+  saveProfile: (p: Profile) => void;
+  addFood: (f: Omit<Food, 'id' | 'createdAt'>) => Food;
+  updateFood: (f: Food) => void;
+  deleteFood: (id: string) => void;
+  addEntry: (e: { date: string; meal: Meal; foodId: string; grams: number; note?: string }) => void;
+  addEntries: (list: { date: string; meal: Meal; foodId: string; grams: number; note?: string }[]) => void;
+  removeEntry: (id: string) => void;
+  copyMeal: (fromDate: string, toDate: string, meal: Meal) => number;
+  logWeight: (date: string, kg: number) => void;
+  removeWeight: (date: string) => void;
+  saveRecipe: (r: Omit<Recipe, 'id' | 'createdAt'> & { id?: string }) => Recipe;
+  deleteRecipe: (id: string) => void;
+  toggleFavorite: (foodId: string) => void;
+  saveMeal: (name: string, items: SavedMeal['items']) => void;
+  deleteSavedMeal: (id: string) => void;
+  setTrainingDay: (date: string, value: boolean) => void;
+  setHabit: (date: string, habit: 'creatine', value: boolean) => void;
+  applyCheckIn: (c: CheckIn) => void;
+  saveMeasurement: (m: BodyMeasurement) => void;
+  addPhoto: (p: Omit<ProgressPhoto, 'id'>) => void;
+  removePhoto: (id: string) => void;
+  setPrice: (foodId: string, price: Price | undefined) => void;
+  countAiUse: (date: string) => void;
+  updateSettings: (s: Partial<Settings>) => void;
+  replaceAll: (s: PersistedState) => void;
+  resetAll: () => void;
+};
+
+const EMPTY: PersistedState = {
+  profile: undefined,
+  customFoods: {},
+  entries: [],
+  weights: [],
+  recipes: {},
+  favorites: [],
+  savedMeals: [],
+  trainingDays: {},
+  habits: {},
+  checkIns: [],
+  measurements: [],
+  photos: [],
+  prices: {},
+  aiUsage: {},
+  settings: {},
+  updatedAt: new Date(0).toISOString(),
+};
+
+export const useAppStore = create<PersistedState & Actions>()(
+  persist(
+    (rawSet, get) => {
+      // Toda alteração marca a hora, usada para resolver conflitos na sincronização.
+      const set = (partial: Partial<PersistedState>) => rawSet({ ...partial, updatedAt: new Date().toISOString() });
+      return {
+        ...EMPTY,
+
+        saveProfile: (profile) => set({ profile }),
+
+        addFood: (f) => {
+          const food: Food = { ...f, id: newId(), createdAt: new Date().toISOString() };
+          set({ customFoods: { ...get().customFoods, [food.id]: food } });
+          return food;
+        },
+        updateFood: (food) => set({ customFoods: { ...get().customFoods, [food.id]: food } }),
+        deleteFood: (id) => {
+          const { [id]: _removed, ...rest } = get().customFoods;
+          set({ customFoods: rest, favorites: get().favorites.filter((f) => f !== id) });
+        },
+
+        addEntry: (e) => set({ entries: [...get().entries, { ...e, id: newId() }] }),
+        addEntries: (list) => set({ entries: [...get().entries, ...list.map((e) => ({ ...e, id: newId() }))] }),
+        removeEntry: (id) => set({ entries: get().entries.filter((e) => e.id !== id) }),
+        copyMeal: (fromDate, toDate, meal) => {
+          const source = get().entries.filter((e) => e.date === fromDate && e.meal === meal);
+          set({ entries: [...get().entries, ...source.map((e) => ({ ...e, id: newId(), date: toDate }))] });
+          return source.length;
+        },
+
+        logWeight: (date, kg) => {
+          const weights = get().weights.filter((w) => w.date !== date);
+          weights.push({ date, kg });
+          weights.sort((a, b) => a.date.localeCompare(b.date));
+          const profile = get().profile;
+          // A pesagem mais recente atualiza o perfil, e com ele as metas de proteína.
+          const latest = weights[weights.length - 1];
+          set({ weights, profile: profile && latest ? { ...profile, weightKg: latest.kg } : profile });
+        },
+        removeWeight: (date) => set({ weights: get().weights.filter((w) => w.date !== date) }),
+
+        saveRecipe: (r) => {
+          const recipe: Recipe = { ...r, id: r.id ?? newId(), createdAt: get().recipes[r.id ?? '']?.createdAt ?? new Date().toISOString() };
+          set({ recipes: { ...get().recipes, [recipe.id]: recipe } });
+          return recipe;
+        },
+        deleteRecipe: (id) => {
+          const { [id]: _removed, ...rest } = get().recipes;
+          set({ recipes: rest });
+        },
+
+        toggleFavorite: (foodId) => {
+          const favs = get().favorites;
+          set({ favorites: favs.includes(foodId) ? favs.filter((f) => f !== foodId) : [...favs, foodId] });
+        },
+        saveMeal: (name, items) => set({ savedMeals: [...get().savedMeals, { id: newId(), name, items }] }),
+        deleteSavedMeal: (id) => set({ savedMeals: get().savedMeals.filter((m) => m.id !== id) }),
+
+        setTrainingDay: (date, value) => set({ trainingDays: { ...get().trainingDays, [date]: value } }),
+        setHabit: (date, habit, value) => set({ habits: { ...get().habits, [date]: { ...get().habits[date], [habit]: value } } }),
+
+        applyCheckIn: (c) => {
+          const profile = get().profile;
+          set({
+            checkIns: [...get().checkIns, c],
+            profile: profile ? { ...profile, kcalAdjustment: (profile.kcalAdjustment ?? 0) + c.adjustmentKcal } : profile,
+          });
+        },
+
+        saveMeasurement: (m) => {
+          const list = get().measurements.filter((x) => x.date !== m.date);
+          list.push(m);
+          list.sort((a, b) => a.date.localeCompare(b.date));
+          const profile = get().profile;
+          set({
+            measurements: list,
+            profile: profile && m.bodyFatPct ? { ...profile, bodyFatPct: m.bodyFatPct } : profile,
+          });
+        },
+        addPhoto: (p) => set({ photos: [...get().photos, { ...p, id: newId() }] }),
+        removePhoto: (id) => set({ photos: get().photos.filter((p) => p.id !== id) }),
+
+        setPrice: (foodId, price) => {
+          const { [foodId]: _old, ...rest } = get().prices;
+          set({ prices: price ? { ...rest, [foodId]: price } : rest });
+        },
+        countAiUse: (date) => set({ aiUsage: { ...get().aiUsage, [date]: (get().aiUsage[date] ?? 0) + 1 } }),
+        updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
+
+        replaceAll: (s) => rawSet({ ...EMPTY, ...s }),
+        resetAll: () => rawSet({ ...EMPTY, updatedAt: new Date().toISOString() }),
+      };
+    },
+    {
+      name: 'macrofactorbr-v1',
+      version: 2,
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (s) => pickPersisted(s),
+      // v1 só tinha perfil, alimentos, diário e pesos.
+      migrate: (persisted) => ({ ...EMPTY, ...(persisted as Partial<PersistedState>) }),
+    },
+  ),
+);
+
+export function pickPersisted(s: PersistedState): PersistedState {
+  return {
+    profile: s.profile,
+    customFoods: s.customFoods,
+    entries: s.entries,
+    weights: s.weights,
+    recipes: s.recipes,
+    favorites: s.favorites,
+    savedMeals: s.savedMeals,
+    trainingDays: s.trainingDays,
+    habits: s.habits,
+    checkIns: s.checkIns,
+    measurements: s.measurements,
+    photos: s.photos,
+    prices: s.prices,
+    aiUsage: s.aiUsage,
+    settings: s.settings,
+    updatedAt: s.updatedAt,
+  };
+}
+
+const TACO_BY_ID: Record<string, Food> = Object.fromEntries(TACO_FOODS.map((f) => [f.id, f]));
+
+/** Base completa: TACO + suplementos + alimentos cadastrados + receitas/marmitas. */
+export function useAllFoods(): Record<string, Food> {
+  const custom = useAppStore((s) => s.customFoods);
+  const recipes = useAppStore((s) => s.recipes);
+  return useMemo(() => {
+    const all: Record<string, Food> = { ...TACO_BY_ID };
+    for (const f of Object.values(custom)) all[f.id] = { ...f, per100g: { ...f.per100g, leucine: leucinePer100g(f) } };
+    // Receitas dependem dos ingredientes já carregados acima.
+    for (const r of Object.values(recipes)) {
+      const food = recipeToFood(r, all);
+      all[food.id] = food;
+    }
+    return all;
+  }, [custom, recipes]);
+}
+
+export function findFoodByBarcode(foods: Record<string, Food>, barcode: string): Food | undefined {
+  return Object.values(foods).find((f) => f.barcode === barcode);
+}
+
+export function useHydrated(): boolean {
+  return useSyncExternalStore(
+    (cb) => useAppStore.persist.onFinishHydration(cb),
+    () => useAppStore.persist.hasHydrated(),
+    () => false,
+  );
+}

@@ -1,0 +1,70 @@
+{
+  "expo": {
+    "name": "MacroFactorBR",
+    "slug": "macrofactorbr",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "br.macrofactor.app",
+      "infoPlist": {}
+    },
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "br.macrofactor.app",
+      "permissions": [
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.WRITE_WEIGHT",
+        "android.permission.health.READ_STEPS"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "output": "single",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "O MacroFactorBR usa a câmera para ler códigos de barras e tabelas nutricionais.",
+          "recordAudioAndroid": false
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "O MacroFactorBR acessa suas fotos para ler tabelas nutricionais.",
+          "cameraPermission": "O MacroFactorBR usa a câmera para fotografar tabelas nutricionais."
+        }
+      ],
+      "expo-sharing",
+      "react-native-health-connect",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "O MacroFactorBR lê seu peso e seus passos do Apple Saúde para calcular seu gasto energético.",
+          "NSHealthUpdateUsageDescription": "O MacroFactorBR salva no Apple Saúde as pesagens que você registra no app."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
+        }
+      ]
+    ],
+    "scheme": "macrofactorbr"
+  }
+}

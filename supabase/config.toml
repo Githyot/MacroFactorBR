@@ -1,0 +1,15 @@
+# Configuração mínima do Supabase CLI (supabase start / supabase db push).
+project_id = "macrofactorbr"
+
+[auth]
+site_url = "macrofactorbr://"
+additional_redirect_urls = ["macrofactorbr://**", "http://localhost:8081/**"]
+
+[auth.email]
+enable_signup = true
+
+[functions.ai]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
