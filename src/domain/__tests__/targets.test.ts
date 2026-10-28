@@ -17,10 +17,11 @@ describe('targets', () => {
     expect(bmr({ ...base, bodyFatPct: 15 }, today)).toBeCloseTo(370 + 21.6 * 68);
   });
 
-  it('meta de bulk: superávit de 10% e proteína 2 g/kg', () => {
+  it('meta de bulk: superávit pela taxa de ganho (intermediário) e proteína 2 g/kg', () => {
     const t = computeTargets(base, undefined, today);
     expect(t.tdee).toBe(Math.round(1780 * 1.55));
-    expect(t.kcal).toBe(Math.round(1780 * 1.55 * 1.1));
+    // 80 kg × 0,75%/mês = 0,6 kg/mês → 154 kcal/dia (dentro da faixa de 5–15%)
+    expect(t.kcal).toBe(Math.round(1780 * 1.55 + (80 * 0.0075 * 7700) / 30));
     expect(t.protein).toBe(160);
     expect(t.proteinPerMeal).toBe(40);
     expect(t.protein * 4 + t.carbs * 4 + t.fat * 9).toBeGreaterThan(t.kcal - 15);

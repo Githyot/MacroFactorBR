@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
+import { Link, Href } from 'expo-router';
+import { Pressable, StyleSheet, Switch, Text, TextInput, TextInputProps, View, ViewStyle } from 'react-native';
 
 export const colors = {
   bg: '#F4F6F5',
@@ -115,6 +116,51 @@ export function MacroRow({ label, value, target, unit, color }: { label: string;
       </View>
       <ProgressBar value={value} target={target} color={color} />
     </View>
+  );
+}
+
+export function ToggleRow({ label, value, onChange, hint }: { label: string; value: boolean; onChange: (v: boolean) => void; hint?: string }) {
+  return (
+    <View style={[styles.rowBetween, { marginBottom: 8 }]}>
+      <View style={{ flex: 1, paddingRight: 12 }}>
+        <Text style={{ color: colors.text, fontSize: 15 }}>{label}</Text>
+        {hint ? <Text style={styles.muted}>{hint}</Text> : null}
+      </View>
+      <Switch value={value} onValueChange={onChange} trackColor={{ true: colors.primary }} />
+    </View>
+  );
+}
+
+export function Badge({ text, tone = 'neutral' }: { text: string; tone?: 'neutral' | 'warn' | 'danger' | 'good' }) {
+  const bg = { neutral: '#E8ECEA', warn: colors.warnSoft, danger: '#FDE7E5', good: colors.primarySoft }[tone];
+  const fg = { neutral: colors.muted, warn: colors.warn, danger: colors.danger, good: colors.primary }[tone];
+  return (
+    <View style={{ backgroundColor: bg, borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, alignSelf: 'flex-start' }}>
+      <Text style={{ color: fg, fontSize: 12, fontWeight: '700' }}>{text}</Text>
+    </View>
+  );
+}
+
+/** Linha clicável que leva a outra tela. */
+export function NavRow({ href, title, subtitle }: { href: Href; title: string; subtitle?: string }) {
+  return (
+    <Link href={href} asChild>
+      <Pressable style={({ pressed }) => [styles.rowBetween, { paddingVertical: 10 }, pressed && { opacity: 0.6 }]}>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.text, fontSize: 15, fontWeight: '600' }}>{title}</Text>
+          {subtitle ? <Text style={styles.muted}>{subtitle}</Text> : null}
+        </View>
+        <Text style={{ color: colors.muted, fontSize: 18 }}>›</Text>
+      </Pressable>
+    </Link>
+  );
+}
+
+export function LinkText({ children, onPress }: { children: ReactNode; onPress: () => void }) {
+  return (
+    <Pressable onPress={onPress} hitSlop={8}>
+      <Text style={{ color: colors.primary, fontWeight: '600' }}>{children}</Text>
+    </Pressable>
   );
 }
 

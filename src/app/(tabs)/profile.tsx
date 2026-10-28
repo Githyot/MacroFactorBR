@@ -2,19 +2,23 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, Chips, colors, Field, Muted, parseInput, styles, Title } from '../../components/ui';
+import { Button, Card, Chips, colors, Field, Muted, NavRow, parseInput, styles, Title, ToggleRow } from '../../components/ui';
 import { todayIso } from '../../domain/foods';
 import {
   ACTIVITY_FACTORS,
   ActivityLevel,
   computeTargets,
   DEFAULT_PROTEIN_PER_KG,
+  explainTargets,
   Goal,
   GOALS,
   Profile,
   proteinPerMealRange,
   Sex,
+  TRAINING_LEVELS,
+  TrainingLevel,
 } from '../../domain/targets';
+import { hasBackend } from '../../services/config';
 import { useAppStore } from '../../store/useAppStore';
 
 const PROTEIN_OPTIONS = ['1.6', '1.8', '2', '2.2', '2.5'];
@@ -38,6 +42,8 @@ export default function ProfileScreen() {
   const saveProfile = useAppStore((s) => s.saveProfile);
   const logWeight = useAppStore((s) => s.logWeight);
   const hasWeights = useAppStore((s) => s.weights.length > 0);
+  const consentAt = useAppStore((s) => s.settings.consentAt);
+  const updateSettings = useAppStore((s) => s.updateSettings);
 
   const [name, setName] = useState(profile?.name ?? '');
   const [sex, setSex] = useState<Sex>(profile?.sex ?? 'male');
@@ -49,6 +55,10 @@ export default function ProfileScreen() {
   const [goal, setGoal] = useState<Goal>(profile?.goal ?? 'bulk');
   const [proteinPerKg, setProteinPerKg] = useState(String(profile?.proteinPerKg ?? DEFAULT_PROTEIN_PER_KG));
   const [meals, setMeals] = useState(String(profile?.mealsPerDay ?? 4));
+  const [trainingLevel, setTrainingLevel] = useState<TrainingLevel>(profile?.trainingLevel ?? 'intermediate');
+  const [trainingDays, setTrainingDays] = useState(String(profile?.trainingDays ?? 4));
+  const [carbCycling, setCarbCycling] = useState(profile?.carbCycling ?? false);
+  const [consent, setConsent] = useState(Boolean(consentAt));
   const [saved, setSaved] = useState(false);
 
   const birthDate = parseBirth(birth);
@@ -67,12 +77,17 @@ export default function ProfileScreen() {
           goal,
           proteinPerKg: parseInput(proteinPerKg) ?? DEFAULT_PROTEIN_PER_KG,
           mealsPerDay: Math.max(1, Math.round(parseInput(meals) ?? 4)),
+          trainingLevel,
+          trainingDays: Math.min(7, Math.max(1, Math.round(parseInput(trainingDays) ?? 4))),
+          carbCycling,
+          kcalAdjustment: profile?.kcalAdjustment,
         }
       : undefined;
   const preview = draft ? computeTargets(draft) : undefined;
 
   const save = () => {
-    if (!draft) return;
+    if (!draft || !consent) return;
+    if (!consentAt) updateSettings({ consentAt: new Date().toISOString() });
     const isFirst = !profile;
     saveProfile(draft);
     // O peso do perfil também entra no histórico, que alimenta o gasto adaptativo.
@@ -111,6 +126,27 @@ export default function ProfileScreen() {
       </Card>
 
       <Card>
+        <Title>Treino</Title>
+        <Chips
+          options={(Object.keys(TRAINING_LEVELS) as TrainingLevel[]).map((k) => ({ value: k, label: TRAINING_LEVELS[k].label }))}
+          value={trainingLevel}
+          onChange={setTrainingLevel}
+        />
+        <Muted style={{ marginBottom: 8 }}>
+          {goal === 'bulk'
+            ? `Ritmo de ganho alvo: ${TRAINING_LEVELS[trainingLevel].description}. Quanto mais experiente, mais devagar se ganha músculo.`
+            : 'O nível de treino define o ritmo de ganho quando o objetivo é ganhar massa.'}
+        </Muted>
+        <Field label="Dias de treino por semana" keyboardType="number-pad" value={trainingDays} onChangeText={setTrainingDays} />
+        <ToggleRow
+          label="Ciclo de carboidrato"
+          hint="Mais carboidrato nos dias de treino e menos no descanso, com a mesma média na semana. Marque o dia de treino na tela Hoje."
+          value={carbCycling}
+          onChange={setCarbCycling}
+        />
+      </Card>
+
+      <Card>
         <Title>Proteína</Title>
         <Muted style={{ marginBottom: 8 }}>
           Para hipertrofia, a evidência aponta 1,6 a 2,2 g por kg. O padrão do app é 2,0 g/kg.
@@ -136,12 +172,37 @@ export default function ProfileScreen() {
           <Text style={styles.macroLabel}>
             {preview.kcal} kcal · {preview.carbs} g carboidratos · {preview.fat} g gorduras
           </Text>
-          <Muted>Gasto estimado pela fórmula: {preview.tdee} kcal. Depois de 2 semanas registrando peso e refeições, o app passa a usar o seu gasto real.</Muted>
+          <Text style={[styles.fieldLabel, { marginTop: 10 }]}>Como calculamos</Text>
+          {explainTargets(draft, preview).map((l) => (
+            <Muted key={l} style={{ marginBottom: 4 }}>
+              • {l}
+            </Muted>
+          ))}
+          <Muted>Depois de 2 semanas registrando peso e refeições, o app passa a usar o seu gasto real.</Muted>
         </Card>
       ) : null}
 
-      <Button title={profile ? 'Salvar alterações' : 'Calcular minhas metas'} onPress={save} disabled={!draft} />
+      {!consentAt ? (
+        <Card>
+          <ToggleRow
+            label="Concordo com o uso dos meus dados"
+            hint="Peso, medidas e alimentação são dados de saúde (LGPD). Ficam no seu aparelho e, se você entrar numa conta, na nuvem para sincronizar. Nunca são vendidos. Você pode exportar ou apagar tudo em Conta e dados."
+            value={consent}
+            onChange={setConsent}
+          />
+        </Card>
+      ) : null}
+
+      <Button title={profile ? 'Salvar alterações' : 'Calcular minhas metas'} onPress={save} disabled={!draft || !consent} />
       {saved ? <Muted>Perfil salvo.</Muted> : null}
+
+      {profile ? (
+        <Card>
+          <NavRow href="/checkin" title="Check-in semanal" subtitle="Ajuste das metas pelo seu ritmo real" />
+          <NavRow href="/account" title="Conta e dados" subtitle={hasBackend ? 'Login, sincronização, Saúde, exportar e apagar' : 'Exportar e apagar dados, Saúde'} />
+          <NavRow href="/pro" title="MacroFactorBR Pro" subtitle="Recursos avançados" />
+        </Card>
+      ) : null}
     </ScrollView>
   );
 }

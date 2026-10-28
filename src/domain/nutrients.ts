@@ -20,7 +20,8 @@ export type NutrientKey =
   | 'vitaminC'
   | 'vitaminD'
   | 'vitaminB12'
-  | 'cholesterol';
+  | 'cholesterol'
+  | 'leucine';
 
 export type Nutrients = Partial<Record<NutrientKey, number>>;
 
@@ -52,6 +53,7 @@ export const NUTRIENTS: NutrientInfo[] = [
   { key: 'vitaminD', label: 'Vitamina D', unit: 'µg', group: 'micro' },
   { key: 'vitaminB12', label: 'Vitamina B12', unit: 'µg', group: 'micro' },
   { key: 'cholesterol', label: 'Colesterol', unit: 'mg', group: 'micro' },
+  { key: 'leucine', label: 'Leucina', unit: 'g', group: 'macro' },
 ];
 
 export const NUTRIENT_BY_KEY = Object.fromEntries(NUTRIENTS.map((n) => [n.key, n])) as Record<

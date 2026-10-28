@@ -8,7 +8,8 @@
     "userInterfaceStyle": "light",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "br.macrofactor.app"
+      "bundleIdentifier": "br.macrofactor.app",
+      "infoPlist": {}
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +19,12 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "br.macrofactor.app"
+      "package": "br.macrofactor.app",
+      "permissions": [
+        "android.permission.health.READ_WEIGHT",
+        "android.permission.health.WRITE_WEIGHT",
+        "android.permission.health.READ_STEPS"
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png",
@@ -39,6 +45,23 @@
         {
           "photosPermission": "O MacroFactorBR acessa suas fotos para ler tabelas nutricionais.",
           "cameraPermission": "O MacroFactorBR usa a câmera para fotografar tabelas nutricionais."
+        }
+      ],
+      "expo-sharing",
+      "react-native-health-connect",
+      [
+        "@kingstinct/react-native-healthkit",
+        {
+          "NSHealthShareUsageDescription": "O MacroFactorBR lê seu peso e seus passos do Apple Saúde para calcular seu gasto energético.",
+          "NSHealthUpdateUsageDescription": "O MacroFactorBR salva no Apple Saúde as pesagens que você registra no app."
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 26
+          }
         }
       ]
     ],

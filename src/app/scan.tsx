@@ -6,10 +6,12 @@ import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { Button, Card, colors, Field, Muted, styles, Title } from '../components/ui';
 import { isValidGtin, Meal } from '../domain/foods';
 import { fetchOffProduct } from '../domain/openFoodFacts';
-import { findFoodByBarcode, useAllFoods } from '../store/useAppStore';
+import { findSharedByBarcode, sharedToFood } from '../services/sharedFoods';
+import { findFoodByBarcode, useAllFoods, useAppStore } from '../store/useAppStore';
 
 export default function ScanScreen() {
-  const { meal } = useLocalSearchParams<{ meal?: Meal }>();
+  const { meal, date } = useLocalSearchParams<{ meal?: Meal; date?: string }>();
+  const addFood = useAppStore((s) => s.addFood);
   const [permission, requestPermission] = useCameraPermissions();
   const foods = useAllFoods();
   const [status, setStatus] = useState<string | null>(null);
@@ -20,7 +22,7 @@ export default function ScanScreen() {
     const code = raw.replace(/\D/g, '');
     if (busy.current || !code) return;
     busy.current = true;
-    const mealParam = meal ? { meal } : {};
+    const mealParam = { ...(meal ? { meal } : {}), ...(date ? { date } : {}) };
     try {
       // 1) Já cadastrado neste aparelho
       const local = findFoodByBarcode(foods, code);
@@ -28,14 +30,21 @@ export default function ScanScreen() {
         router.replace({ pathname: '/food/[id]', params: { id: local.id, ...mealParam } });
         return;
       }
-      // 2) Base aberta Open Food Facts (você revisa antes de salvar)
       setStatus('Procurando o produto…');
+      // 2) Base compartilhada pelos usuários do app (rótulos brasileiros lidos por foto)
+      const shared = await findSharedByBarcode(code).catch(() => undefined);
+      if (shared && shared.status !== 'rejected') {
+        const food = addFood(sharedToFood(shared));
+        router.replace({ pathname: '/food/[id]', params: { id: food.id, ...mealParam } });
+        return;
+      }
+      // 3) Base aberta Open Food Facts (você revisa antes de salvar)
       const draft = await fetchOffProduct(code).catch(() => undefined);
       if (draft) {
         router.replace({ pathname: '/food/new', params: { barcode: code, draft: JSON.stringify(draft), ...mealParam } });
         return;
       }
-      // 3) Produto novo: fotografe a tabela nutricional e o app preenche tudo
+      // 4) Produto novo: fotografe a tabela nutricional e o app preenche tudo
       router.replace({ pathname: '/food/new', params: { barcode: code, ocr: '1', ...mealParam } });
     } finally {
       busy.current = false;

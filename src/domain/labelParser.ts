@@ -42,7 +42,7 @@ const IGNORE_LINE = /nao contem quantidade|percentual de valores|valores diarios
 export function normalize(text: string): string {
   return text
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[|]/g, ' ')
     .replace(/µg|mcg/g, 'ug')

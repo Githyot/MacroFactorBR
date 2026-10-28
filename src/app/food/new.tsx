@@ -3,12 +3,16 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, colors, Field, Muted, parseInput, styles, Title } from '../../components/ui';
+import { Badge, Button, Card, colors, Field, Muted, parseInput, styles, Title, ToggleRow } from '../../components/ui';
 import { FoodSource, Meal } from '../../domain/foods';
+import { computeHighIn, guessNameFromFront, HIGH_IN_LABEL, HighIn, parseHighInStamp } from '../../domain/labelFront';
 import { parseNutritionLabel } from '../../domain/labelParser';
 import { NUTRIENTS, NutrientKey, Nutrients } from '../../domain/nutrients';
 import { FoodDraft } from '../../domain/openFoodFacts';
+import { ai } from '../../services/ai';
+import { hasBackend } from '../../services/config';
 import { recognizeText } from '../../services/ocr';
+import { publishFood } from '../../services/sharedFoods';
 import { useAppStore } from '../../store/useAppStore';
 
 function toText(n: Nutrients): Partial<Record<NutrientKey, string>> {
@@ -25,7 +29,7 @@ function readDraft(raw?: string): FoodDraft | undefined {
 }
 
 export default function NewFoodScreen() {
-  const params = useLocalSearchParams<{ barcode?: string; draft?: string; ocr?: string; meal?: Meal }>();
+  const params = useLocalSearchParams<{ barcode?: string; draft?: string; ocr?: string; meal?: Meal; date?: string }>();
   const addFood = useAppStore((s) => s.addFood);
   const [draft] = useState(() => readDraft(params.draft));
 
@@ -40,9 +44,11 @@ export default function NewFoodScreen() {
   const [ocrBusy, setOcrBusy] = useState(false);
   const [ocrMessages, setOcrMessages] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [liquid, setLiquid] = useState(false);
+  const [stampHighIn, setStampHighIn] = useState<HighIn[]>([]);
+  const [share, setShare] = useState(true);
 
-  const readLabel = async (from: 'camera' | 'library') => {
-    setError(null);
+  const pickImage = async (from: 'camera' | 'library'): Promise<string | undefined> => {
     let result: ImagePicker.ImagePickerResult;
     if (from === 'camera' && Platform.OS !== 'web') {
       const perm = await ImagePicker.requestCameraPermissionsAsync();
@@ -54,12 +60,59 @@ export default function NewFoodScreen() {
     } else {
       result = await ImagePicker.launchImageLibraryAsync({ mediaTypes: 'images', quality: 1 });
     }
-    if (result.canceled || !result.assets[0]) return;
+    return result.canceled ? undefined : result.assets[0]?.uri;
+  };
+
+  /** Frente da embalagem: sugere nome/marca e lê os selos "ALTO EM". */
+  const readFront = async (from: 'camera' | 'library') => {
+    setError(null);
+    const uri = await pickImage(from);
+    if (!uri) return;
+    setOcrBusy(true);
+    try {
+      const text = await recognizeText(uri);
+      const guess = guessNameFromFront(text);
+      if (guess.name && !name) setName(guess.name);
+      if (guess.brand && !brand) setBrand(guess.brand);
+      const stamps = parseHighInStamp(text);
+      setStampHighIn(stamps);
+      setOcrMessages([
+        guess.name ? `Nome sugerido: ${guess.name}. Corrija se precisar.` : 'Não achei o nome na foto; digite abaixo.',
+        ...(stamps.length ? [`Selos lidos: alto em ${stamps.map((h) => HIGH_IN_LABEL[h]).join(', ')}.`] : []),
+      ]);
+    } catch (e) {
+      setError(Platform.OS === 'web' ? 'Falha ao ler a imagem.' : 'A leitura por foto precisa da versão instalada do app (development build).');
+      console.warn(e);
+    } finally {
+      setOcrBusy(false);
+    }
+  };
+
+  const readLabel = async (from: 'camera' | 'library') => {
+    setError(null);
+    const uri = await pickImage(from);
+    if (!uri) return;
 
     setOcrBusy(true);
     try {
-      const text = await recognizeText(result.assets[0].uri);
-      const parsed = parseNutritionLabel(text);
+      const text = await recognizeText(uri);
+      let parsed = parseNutritionLabel(text);
+      // Leitura fraca: a IA organiza o texto que o OCR extraiu (só com conta e servidor configurados).
+      if (parsed.found.length < 3 && hasBackend) {
+        const structured = await ai.structureLabel(text).catch(() => undefined);
+        if (structured) {
+          const per100g = Object.fromEntries(Object.entries(structured.per100g).filter(([, v]) => v !== null)) as Nutrients;
+          parsed = {
+            ...parsed,
+            per100g,
+            found: Object.keys(per100g) as NutrientKey[],
+            serving: structured.servingGrams
+              ? { amount: structured.servingGrams, unit: structured.liquid ? 'ml' : 'g', description: structured.servingDescription ?? undefined } : parsed.serving,
+            warnings: [...parsed.warnings, 'Valores organizados pela IA a partir da foto.'],
+          };
+          setLiquid(structured.liquid);
+        }
+      }
       if (parsed.found.length === 0) {
         setError('Não consegui ler a tabela. Tente uma foto mais próxima, reta e com boa luz.');
         return;
@@ -91,8 +144,12 @@ export default function NewFoodScreen() {
   );
   const canSave = name.trim().length > 0 && per100g.kcal !== undefined && per100g.protein !== undefined;
 
+  const highIn = stampHighIn.length ? stampHighIn : computeHighIn(per100g, liquid);
+
   const save = () => {
     const food = addFood({
+      liquid,
+      highIn: highIn.length ? highIn : undefined,
       name: name.trim(),
       brand: brand.trim() || undefined,
       barcode: barcode.replace(/\D/g, '') || undefined,
@@ -101,7 +158,12 @@ export default function NewFoodScreen() {
       servingGrams: parseInput(servingGrams),
       servingDescription: servingDescription.trim() || undefined,
     });
-    router.replace({ pathname: '/food/[id]', params: { id: food.id, ...(params.meal ? { meal: params.meal } : {}) } });
+    // Rótulo lido com código de barras ajuda os outros usuários (fica pendente até ser conferido).
+    if (share && food.barcode && (source === 'label' || source === 'manual')) publishFood(food).catch(() => {});
+    router.replace({
+      pathname: '/food/[id]',
+      params: { id: food.id, ...(params.meal ? { meal: params.meal } : {}), ...(params.date ? { date: params.date } : {}) },
+    });
   };
 
   const visible = NUTRIENTS.filter((n) => showMicros || n.group !== 'micro');
@@ -142,6 +204,11 @@ export default function NewFoodScreen() {
           </View>
         ) : null}
         {error ? <Text style={{ color: colors.danger, marginTop: 12 }}>{error}</Text> : null}
+        {!ocrBusy ? (
+          <View style={{ marginTop: 10 }}>
+            <Button title="Foto da frente (nome e selos)" variant="secondary" onPress={() => readFront(Platform.OS === 'web' ? 'library' : 'camera')} />
+          </View>
+        ) : null}
       </Card>
 
       {draft ? (
@@ -176,7 +243,27 @@ export default function NewFoodScreen() {
           ))}
         </View>
         <Button title={showMicros ? 'Ocultar micronutrientes' : 'Mostrar micronutrientes'} variant="secondary" onPress={() => setShowMicros((s) => !s)} />
+        <View style={{ height: 12 }} />
+        <ToggleRow label="É bebida (valores por 100 ml)" value={liquid} onChange={setLiquid} />
+        {highIn.length ? (
+          <View style={[styles.row, { gap: 6 }]}>
+            {highIn.map((h) => (
+              <Badge key={h} text={`ALTO EM ${HIGH_IN_LABEL[h].toUpperCase()}`} tone="danger" />
+            ))}
+          </View>
+        ) : null}
       </Card>
+
+      {hasBackend && barcode ? (
+        <Card>
+          <ToggleRow
+            label="Compartilhar com a comunidade"
+            hint="Outros usuários que escanearem este código recebem os valores. Fica marcado como não conferido até 2 pessoas confirmarem."
+            value={share}
+            onChange={setShare}
+          />
+        </Card>
+      ) : null}
 
       <Button title="Salvar alimento" onPress={save} disabled={!canSave} />
       {!canSave ? <Muted>Preencha pelo menos nome, calorias e proteína.</Muted> : null}
