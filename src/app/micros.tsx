@@ -5,8 +5,9 @@ import { ScrollView, Text, View } from 'react-native';
 import { Button, Card, Chips, colors, Muted, ProgressBar, styles, useTheme } from '../components/ui';
 import { addDays, dayTotals, todayIso } from '../domain/foods';
 import { microCoverage, microStatus, microTargets, suggestFoodsFor } from '../domain/micros';
-import { formatAmount, NUTRIENT_BY_KEY, Nutrients, scaleNutrients } from '../domain/nutrients';
+import { formatAmount, NUTRIENT_BY_KEY, Nutrients, scaleNutrients, sumNutrients } from '../domain/nutrients';
 import { hasFeature } from '../domain/pro';
+import { supplementNutrients } from '../domain/supplements';
 import { ageFromBirthDate } from '../domain/targets';
 import { usePro } from '../hooks/usePro';
 import { useAllFoods, useAppStore } from '../store/useAppStore';
@@ -18,15 +19,19 @@ export default function MicrosScreen() {
   const profile = useAppStore((s) => s.profile);
   const entries = useAppStore((s) => s.entries);
   const foods = useAllFoods();
+  const supplements = useAppStore((s) => s.supplements);
+  const supplementLog = useAppStore((s) => s.supplementLog);
   const isPro = usePro();
   const [range, setRange] = useState<'day' | 'week'>('day');
 
   const status = useMemo(() => {
     if (!profile) return [];
     let totals: Nutrients;
+    let supp: Nutrients;
     let used = entries.filter((e) => e.date === date);
     if (range === 'day') {
       totals = dayTotals(used, foods);
+      supp = supplementNutrients(supplements, supplementLog[date]);
     } else {
       // Média dos dias com registro nos últimos 7 dias.
       const from = addDays(date, -6);
@@ -34,9 +39,13 @@ export default function MicrosScreen() {
       used = week;
       const days = new Set(week.map((e) => e.date)).size || 1;
       totals = scaleNutrients(dayTotals(week, foods), 100 / days);
+      const dates = Array.from({ length: 7 }, (_, i) => addDays(date, -i));
+      const loggedDays = dates.filter((d) => Object.keys(supplementLog[d] ?? {}).length > 0).length || 1;
+      const weekSupp = dates.map((d) => supplementNutrients(supplements, supplementLog[d]));
+      supp = scaleNutrients(sumNutrients(weekSupp), 100 / loggedDays);
     }
-    return microStatus(totals, microTargets(profile.sex, ageFromBirthDate(profile.birthDate)), microCoverage(used, foods));
-  }, [profile, entries, foods, date, range]);
+    return microStatus(totals, microTargets(profile.sex, ageFromBirthDate(profile.birthDate)), microCoverage(used, foods), supp);
+  }, [profile, entries, foods, date, range, supplements, supplementLog]);
 
   const foodList = useMemo(() => Object.values(foods).filter((f) => !f.archived), [foods]);
   const showSuggestions = hasFeature(isPro, 'microsFull');
@@ -83,6 +92,7 @@ export default function MicrosScreen() {
                 {m.key === 'vitaminD' || m.key === 'vitaminB12' ? ' (a TACO não traz esse nutriente; rótulos escaneados trazem)' : ''}.
               </Muted>
             ) : null}
+            {m.fromSupplements > 0 ? <Muted style={{ marginBottom: 4 }}>Inclui {formatAmount(m.fromSupplements, info.unit)} de suplementos.</Muted> : null}
             <ProgressBar value={m.value} target={m.target} color={m.kind === 'max' ? (m.ok ? colors.muted : colors.danger) : m.ok ? colors.primary : colors.carbs} />
             {suggestions.length > 0 ? (
               <View style={{ marginTop: 8 }}>

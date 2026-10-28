@@ -71,6 +71,7 @@ export default function RootLayout() {
         <Stack.Screen name="plan" options={{ title: 'Cardápio da semana' }} />
         <Stack.Screen name="checkin" options={{ title: 'Check-in semanal' }} />
         <Stack.Screen name="micros" options={{ title: 'Micronutrientes' }} />
+        <Stack.Screen name="supplements" options={{ title: 'Suplementação' }} />
         <Stack.Screen name="account" options={{ title: 'Conta e dados' }} />
         <Stack.Screen name="training/active" options={{ title: 'Treino', gestureEnabled: false }} />
         <Stack.Screen name="training/exercises" options={{ title: 'Exercícios' }} />

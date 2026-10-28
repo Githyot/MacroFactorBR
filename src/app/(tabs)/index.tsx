@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
 import { Badge, Button, Card, colors, LinkText, MacroRow, Muted, NavRow, ProgressBar, styles, Title, ToggleRow, useTheme } from '../../components/ui';
+import { SupplementChecklist } from '../../components/SupplementChecklist';
 import { isCheckInDue } from '../../domain/checkin';
 import { dailyTips } from '../../domain/coach';
 import { addDays, entryNutrients, MEALS, todayIso } from '../../domain/foods';
@@ -28,8 +29,6 @@ export default function TodayScreen() {
   const copyMeal = useAppStore((s) => s.copyMeal);
   const saveMeal = useAppStore((s) => s.saveMeal);
   const setTrainingDay = useAppStore((s) => s.setTrainingDay);
-  const habits = useAppStore((s) => s.habits);
-  const setHabit = useAppStore((s) => s.setHabit);
   const checkIns = useAppStore((s) => s.checkIns);
   const weights = useAppStore((s) => s.weights);
   const [flash, setFlash] = useState<string | null>(null);
@@ -107,6 +106,17 @@ export default function TodayScreen() {
             ? `Faltam ${Math.round(proteinLeft)} g. Meta por refeição: ~${targets.proteinPerMeal} g (${profile.proteinPerKg} g/kg).`
             : 'Meta de proteína batida. 💪'}
         </Muted>
+        {day.proteinSplit.supplement > 0 ? (
+          <View style={{ marginTop: 10 }}>
+            <View style={{ flexDirection: 'row', height: 6, borderRadius: 3, overflow: 'hidden', backgroundColor: colors.track }}>
+              <View style={{ flex: day.proteinSplit.food, backgroundColor: colors.protein }} />
+              <View style={{ flex: day.proteinSplit.supplement, backgroundColor: colors.carbs }} />
+            </View>
+            <Muted style={{ marginTop: 4 }}>
+              Comida {Math.round(day.proteinSplit.food)} g · Suplementos {Math.round(day.proteinSplit.supplement)} g ({Math.round(day.proteinSplit.supplementPct * 100)}%)
+            </Muted>
+          </View>
+        ) : null}
       </Card>
 
       <Card>
@@ -253,13 +263,7 @@ export default function TodayScreen() {
       </Card>
 
       <Card>
-        <Title>Suplementos</Title>
-        <ToggleRow
-          label="Creatina (3–5 g)"
-          hint="Todo dia, inclusive nos dias sem treino"
-          value={Boolean(habits[date]?.creatine)}
-          onChange={(v) => setHabit(date, 'creatine', v)}
-        />
+        <SupplementChecklist date={date} warnings={day.limitWarnings} />
       </Card>
     </ScrollView>
   );

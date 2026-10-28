@@ -24,6 +24,13 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - Favoritos, recentes, refeições salvas, copiar refeição de ontem.
 - Custo por 30 g de proteína para comparar marcas.
 
+**Suplementação**
+- Origem da proteína: quanto vem da comida e quanto de pó (whey, albumina, caseína, proteína vegetal, hipercalórico), no dia e na média da semana.
+- Protocolo de suplementos, vitaminas e minerais e medicamentos, com dose, unidade, vezes ao dia, horários e dias da semana. As doses são marcadas na tela Hoje e a adesão aparece em 7 dias.
+- Modelos prontos: creatina, cafeína, multivitamínico, vitamina D3, ômega 3, B12, magnésio, zinco, vitamina C, cálcio e ferro, cada um com uma explicação curta.
+- Vitaminas e minerais tomados entram no painel de micronutrientes, com aviso quando a soma passa do limite seguro (UL).
+- Medicamentos só são registrados e lembrados: o app não sugere doses.
+
 **Treino (no estilo Hevy)**
 - Biblioteca com mais de 280 exercícios em português (máquinas articuladas e de placa, polias, Smith, barra W, elástico, kettlebell, TRX e funcional), filtro por músculo e por equipamento, e exercícios personalizados.
 - Programas prontos para hipertrofia: Full body 3x, Superior/Inferior 4x, Push/Pull/Legs 6x, ABC, Só máquinas 4x e Glúteos e pernas 4x.

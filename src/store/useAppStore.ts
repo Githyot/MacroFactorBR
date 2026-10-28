@@ -13,6 +13,7 @@ import { CheckIn } from '../domain/checkin';
 import { DiaryEntry, Food, Meal, todayIso } from '../domain/foods';
 import { leucinePer100g } from '../domain/protein';
 import { Recipe, recipeToFood } from '../domain/recipes';
+import { migrateHabits, Supplement, SupplementLog } from '../domain/supplements';
 import { Profile } from '../domain/targets';
 import { Exercise, EXERCISES } from '../domain/workout/exercises';
 import { Program } from '../domain/workout/programs';
@@ -67,7 +68,10 @@ export type PersistedState = {
   favorites: string[];
   savedMeals: SavedMeal[];
   trainingDays: Record<string, boolean>;
+  /** Antigo registro de creatina; migrado para supplements/supplementLog na v4. */
   habits: Record<string, { creatine?: boolean }>;
+  supplements: Record<string, Supplement>;
+  supplementLog: SupplementLog;
   checkIns: CheckIn[];
   measurements: BodyMeasurement[];
   photos: ProgressPhoto[];
@@ -99,7 +103,9 @@ type Actions = {
   saveMeal: (name: string, items: SavedMeal['items']) => void;
   deleteSavedMeal: (id: string) => void;
   setTrainingDay: (date: string, value: boolean) => void;
-  setHabit: (date: string, habit: 'creatine', value: boolean) => void;
+  saveSupplement: (s: Omit<Supplement, 'id' | 'createdAt'> & { id?: string }) => Supplement;
+  deleteSupplement: (id: string) => void;
+  setSupplementTaken: (date: string, id: string, doses: number) => void;
   applyCheckIn: (c: CheckIn) => void;
   saveMeasurement: (m: BodyMeasurement) => void;
   addPhoto: (p: Omit<ProgressPhoto, 'id'>) => void;
@@ -130,6 +136,8 @@ const EMPTY: PersistedState = {
   savedMeals: [],
   trainingDays: {},
   habits: {},
+  supplements: {},
+  supplementLog: {},
   checkIns: [],
   measurements: [],
   photos: [],
@@ -222,7 +230,30 @@ export const useAppStore = create<PersistedState & Actions>()(
         deleteSavedMeal: (id) => set({ savedMeals: get().savedMeals.filter((m) => m.id !== id) }),
 
         setTrainingDay: (date, value) => set({ trainingDays: { ...get().trainingDays, [date]: value } }),
-        setHabit: (date, habit, value) => set({ habits: { ...get().habits, [date]: { ...get().habits[date], [habit]: value } } }),
+        saveSupplement: (input) => {
+          const prev = input.id ? get().supplements[input.id] : undefined;
+          const sup: Supplement = { ...input, id: input.id ?? newId(), createdAt: prev?.createdAt ?? new Date().toISOString() };
+          set({ supplements: { ...get().supplements, [sup.id]: sup } });
+          return sup;
+        },
+        // Com doses já marcadas, só arquiva: o histórico e os micros de dias passados não mudam.
+        deleteSupplement: (id) => {
+          const { supplements, supplementLog } = get();
+          if (!supplements[id]) return;
+          const used = Object.values(supplementLog).some((day) => (day[id] ?? 0) > 0);
+          if (used) {
+            set({ supplements: { ...supplements, [id]: { ...supplements[id], archived: true } } });
+            return;
+          }
+          const { [id]: _removed, ...rest } = supplements;
+          set({ supplements: rest });
+        },
+        setSupplementTaken: (date, id, doses) => {
+          const log = get().supplementLog;
+          const day = { ...log[date], [id]: Math.max(0, doses) };
+          if (!day[id]) delete day[id];
+          set({ supplementLog: { ...log, [date]: day } });
+        },
 
         // O check-in só registra a semana: a meta já acompanha o gasto adaptativo.
         applyCheckIn: (c) => set({ checkIns: [...get().checkIns, c] }),
@@ -296,17 +327,17 @@ export const useAppStore = create<PersistedState & Actions>()(
           return ex;
         },
 
-        replaceAll: (s) => rawSet({ ...EMPTY, ...s }),
+        replaceAll: (s) => rawSet(migrateHabits({ ...EMPTY, ...s })),
         resetAll: () => rawSet({ ...EMPTY, updatedAt: new Date().toISOString() }),
       };
     },
     {
       name: 'macrofactorbr-v1',
-      version: 3,
+      version: 4,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => pickPersisted(s),
-      // v1 só tinha perfil, alimentos, diário e pesos; v2 não tinha treinos.
-      migrate: (persisted) => ({ ...EMPTY, ...(persisted as Partial<PersistedState>) }),
+      // v1 só tinha perfil, alimentos, diário e pesos; v2 não tinha treinos; v3 marcava creatina como hábito.
+      migrate: (persisted) => migrateHabits({ ...EMPTY, ...(persisted as Partial<PersistedState>) }),
     },
   ),
 );
@@ -322,6 +353,8 @@ export function pickPersisted(s: PersistedState): PersistedState {
     savedMeals: s.savedMeals,
     trainingDays: s.trainingDays,
     habits: s.habits,
+    supplements: s.supplements,
+    supplementLog: s.supplementLog,
     checkIns: s.checkIns,
     measurements: s.measurements,
     photos: s.photos,

@@ -36,6 +36,8 @@ export type MicroStatus = MicroTarget & {
   ok: boolean;
   /** false quando boa parte do que foi comido não tem esse dado (a TACO não traz vitamina D nem B12). */
   known: boolean;
+  /** Parte do valor que veio de vitaminas e minerais tomados. */
+  fromSupplements: number;
 };
 
 /** Para cada nutriente, a fração das calorias do dia vinda de alimentos que informam esse nutriente. */
@@ -55,14 +57,21 @@ export function microCoverage(entries: DiaryEntry[], foods: Record<string, Food>
 
 const MIN_COVERAGE = 0.6;
 
-export function microStatus(totals: Nutrients, targets: MicroTarget[], coverage?: Partial<Record<NutrientKey, number>>): MicroStatus[] {
+export function microStatus(
+  totals: Nutrients,
+  targets: MicroTarget[],
+  coverage?: Partial<Record<NutrientKey, number>>,
+  supplements: Nutrients = {},
+): MicroStatus[] {
   return targets.map((t) => {
-    const value = totals[t.key] ?? 0;
+    const fromSupplements = supplements[t.key] ?? 0;
+    const value = (totals[t.key] ?? 0) + fromSupplements;
     const pct = t.target > 0 ? value / t.target : 0;
     const ok = t.kind === 'min' ? pct >= 1 : pct <= 1;
     // Com pouco dado não dá para dizer que falta; mas se já passou do alvo, sabemos que atingiu.
-    const known = !coverage || (coverage[t.key] ?? 0) >= MIN_COVERAGE || (t.kind === 'min' && ok) || (t.kind === 'max' && !ok);
-    return { ...t, value, pct, ok, known };
+    // Com suplemento, o valor é pelo menos a dose tomada.
+    const known = !coverage || fromSupplements > 0 || (coverage[t.key] ?? 0) >= MIN_COVERAGE || (t.kind === 'min' && ok) || (t.kind === 'max' && !ok);
+    return { ...t, value, pct, ok, known, fromSupplements };
   });
 }
 
