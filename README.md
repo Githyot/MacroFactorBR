@@ -12,7 +12,7 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - Superávit pelo nível de treino (iniciante 1–1,5 %/mês, intermediário 0,5–1 %, avançado 0,25–0,5 %), explicado número a número.
 - Gasto adaptativo pela tendência do peso e check-in semanal que ajusta as calorias em passos de até 250 kcal e avisa bulking sujo.
 - Ciclo de carboidrato opcional (dia de treino × descanso, mesma média semanal).
-- Medidas corporais, fotos de progresso (ficam só no aparelho) e gráfico de tendência.
+- Medidas corporais (cintura, quadril, peito, ombros, pescoço, braços e coxas dos dois lados, antebraço, panturrilha, % de gordura), fotos de progresso (ficam só no aparelho) e gráfico de tendência.
 
 **Registro de alimentos**
 - Base TACO completa (597 alimentos) + suplementos e pratos típicos, com busca por sinônimos regionais (aipim/macaxeira/mandioca).
@@ -23,6 +23,15 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - Receitas e marmitas pelo peso pronto, com código para compartilhar.
 - Favoritos, recentes, refeições salvas, copiar refeição de ontem.
 - Custo por 30 g de proteína para comparar marcas.
+
+**Treino (no estilo Hevy)**
+- Biblioteca com 80 exercícios em português, filtro por músculo e exercícios personalizados.
+- Programas prontos para hipertrofia: Full body 3x, Superior/Inferior 4x, Push/Pull/Legs 6x e ABC.
+- Rotinas editáveis (séries, faixa de repetições, descanso) organizadas em pastas.
+- Treino ao vivo: coluna "Anterior", séries de aquecimento, falha e drop, RPE opcional, timer de descanso com vibração.
+- Progressão dupla automática (sugere quando subir carga), recordes (carga, 1RM estimado, volume, melhor carga por repetição) e gráfico de evolução.
+- Séries semanais por músculo comparadas com a faixa de 10–20, sequência semanal e calculadora de anilhas.
+- Ligado à dieta: terminar o treino marca o dia de treino (ciclo de carboidrato) e lembra da proteína pós-treino.
 
 **Planejamento e dados**
 - Cardápio automático da semana com comida brasileira e lista de compras em quantidades cruas.
@@ -76,7 +85,7 @@ Crie os produtos mensal e anual nas lojas, um entitlement `pro` e uma offering p
 src/
   app/            telas (Expo Router)
   domain/         lógica pura e testada: metas, check-in, TDEE adaptativo, leitor de tabela, receitas,
-                  medidas, cru/cozido, micros, cardápio, relatórios
+                  medidas, cru/cozido, micros, cardápio, relatórios, treino (domain/workout)
   data/           TACO completa (gerada por scripts/import-taco.mjs) e suplementos
   services/       Supabase, sincronização, IA, OCR, Saúde, pagamentos, arquivos, voz
   store/          estado salvo no aparelho (zustand + AsyncStorage)

@@ -82,10 +82,16 @@ export default function ProgressScreen() {
 
   const MFIELDS: { key: keyof BodyMeasurement; label: string; suffix: string }[] = [
     { key: 'waistCm', label: 'Cintura', suffix: 'cm' },
-    { key: 'chestCm', label: 'Peito', suffix: 'cm' },
-    { key: 'armCm', label: 'Braço', suffix: 'cm' },
-    { key: 'thighCm', label: 'Coxa', suffix: 'cm' },
     { key: 'hipCm', label: 'Quadril', suffix: 'cm' },
+    { key: 'chestCm', label: 'Peito', suffix: 'cm' },
+    { key: 'shouldersCm', label: 'Ombros', suffix: 'cm' },
+    { key: 'neckCm', label: 'Pescoço', suffix: 'cm' },
+    { key: 'armCm', label: 'Braço esq.', suffix: 'cm' },
+    { key: 'armRightCm', label: 'Braço dir.', suffix: 'cm' },
+    { key: 'forearmCm', label: 'Antebraço', suffix: 'cm' },
+    { key: 'thighCm', label: 'Coxa esq.', suffix: 'cm' },
+    { key: 'thighRightCm', label: 'Coxa dir.', suffix: 'cm' },
+    { key: 'calfCm', label: 'Panturrilha', suffix: 'cm' },
     { key: 'bodyFatPct', label: '% gordura', suffix: '%' },
   ];
 

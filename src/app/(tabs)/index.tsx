@@ -2,7 +2,7 @@ import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Badge, Button, Card, colors, LinkText, MacroRow, Muted, ProgressBar, styles, Title, ToggleRow } from '../../components/ui';
+import { Badge, Button, Card, colors, LinkText, MacroRow, Muted, NavRow, ProgressBar, styles, Title, ToggleRow } from '../../components/ui';
 import { isCheckInDue } from '../../domain/checkin';
 import { dailyTips } from '../../domain/coach';
 import { addDays, entryNutrients, MEALS, todayIso } from '../../domain/foods';
@@ -68,6 +68,7 @@ export default function TodayScreen() {
     micros: day.micros!,
     hour: date === todayIso() ? new Date().getHours() : 23,
   });
+  const isTrainingDay = day.isTrainingDay;
   const lackingMicros = day.micros!.filter((m) => !m.ok).length;
 
   const notify = (msg: string) => {
@@ -243,6 +244,11 @@ export default function TodayScreen() {
         <Muted style={{ marginTop: 8 }}>
           {lackingMicros === 0 ? 'Todos os alvos atingidos.' : `${lackingMicros} alvo(s) ainda abertos. Fibra: ${formatAmount(totals.fiber, 'g')}.`}
         </Muted>
+      </Card>
+
+      <Card>
+        <NavRow href="/plan" title="Cardápio da semana" subtitle="Refeições prontas que batem suas metas e lista de compras" />
+        <NavRow href="/workout" title="Treino" subtitle={isTrainingDay ? 'Dia de treino registrado' : 'Registrar o treino de hoje'} />
       </Card>
 
       <Card>

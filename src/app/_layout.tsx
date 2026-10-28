@@ -60,9 +60,15 @@ export default function RootLayout() {
         <Stack.Screen name="food/[id]" options={{ title: 'Adicionar ao diário' }} />
         <Stack.Screen name="recipe/[id]" options={{ title: 'Receita' }} />
         <Stack.Screen name="quick-add" options={{ title: 'Registro rápido' }} />
+        <Stack.Screen name="plan" options={{ title: 'Cardápio da semana' }} />
         <Stack.Screen name="checkin" options={{ title: 'Check-in semanal' }} />
         <Stack.Screen name="micros" options={{ title: 'Micronutrientes' }} />
         <Stack.Screen name="account" options={{ title: 'Conta e dados' }} />
+        <Stack.Screen name="training/active" options={{ title: 'Treino', gestureEnabled: false }} />
+        <Stack.Screen name="training/exercises" options={{ title: 'Exercícios' }} />
+        <Stack.Screen name="training/[id]" options={{ title: 'Treino' }} />
+        <Stack.Screen name="exercise/[id]" options={{ title: 'Exercício' }} />
+        <Stack.Screen name="routine/[id]" options={{ title: 'Rotina' }} />
         <Stack.Screen name="pro" options={{ title: 'MacroFactorBR Pro', presentation: 'modal' }} />
       </Stack>
     </>

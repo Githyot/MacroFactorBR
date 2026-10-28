@@ -24,9 +24,9 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" options={{ title: 'Hoje', tabBarIcon: icon('today-outline') }} />
       <Tabs.Screen name="foods" options={{ title: 'Alimentos', tabBarIcon: icon('nutrition-outline') }} />
-      <Tabs.Screen name="plan" options={{ title: 'Cardápio', tabBarIcon: icon('restaurant-outline') }} />
+      <Tabs.Screen name="workout" options={{ title: 'Treino', tabBarIcon: icon('barbell-outline') }} />
       <Tabs.Screen name="progress" options={{ title: 'Progresso', tabBarIcon: icon('trending-up-outline') }} />
-      <Tabs.Screen name="profile" options={{ title: 'Perfil e metas', tabBarIcon: icon('person-outline') }} />
+      <Tabs.Screen name="profile" options={{ title: 'Perfil', tabBarIcon: icon('person-outline') }} />
     </Tabs>
   );
 }

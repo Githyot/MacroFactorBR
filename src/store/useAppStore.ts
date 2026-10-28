@@ -9,10 +9,13 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { TACO_FOODS } from '../data/taco';
 import { WeightEntry } from '../domain/adaptiveTdee';
 import { CheckIn } from '../domain/checkin';
-import { DiaryEntry, Food, Meal } from '../domain/foods';
+import { DiaryEntry, Food, Meal, todayIso } from '../domain/foods';
 import { leucinePer100g } from '../domain/protein';
 import { Recipe, recipeToFood } from '../domain/recipes';
 import { Profile } from '../domain/targets';
+import { Exercise, EXERCISES } from '../domain/workout/exercises';
+import { Program } from '../domain/workout/programs';
+import { Routine, Workout } from '../domain/workout/training';
 
 export function newId(): string {
   return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
@@ -22,8 +25,15 @@ export type BodyMeasurement = {
   date: string;
   waistCm?: number;
   chestCm?: number;
+  neckCm?: number;
+  shouldersCm?: number;
+  /** Braço e coxa: o campo sem lado é o esquerdo (compatível com registros antigos). */
   armCm?: number;
+  armRightCm?: number;
+  forearmCm?: number;
   thighCm?: number;
+  thighRightCm?: number;
+  calfCm?: number;
   hipCm?: number;
   bodyFatPct?: number;
 };
@@ -59,6 +69,11 @@ export type PersistedState = {
   photos: ProgressPhoto[];
   prices: Record<string, Price>;
   aiUsage: Record<string, number>;
+  workouts: Workout[];
+  routines: Record<string, Routine>;
+  customExercises: Record<string, Exercise>;
+  /** Treino em andamento: salvo para não se perder se o app fechar. */
+  activeWorkout?: Workout;
   settings: Settings;
   updatedAt: string;
 };
@@ -88,6 +103,15 @@ type Actions = {
   setPrice: (foodId: string, price: Price | undefined) => void;
   countAiUse: (date: string) => void;
   updateSettings: (s: Partial<Settings>) => void;
+  startWorkout: (w: Workout) => void;
+  updateActiveWorkout: (fn: (w: Workout) => Workout) => void;
+  finishWorkout: () => Workout | undefined;
+  discardWorkout: () => void;
+  deleteWorkout: (id: string) => void;
+  saveRoutine: (r: Omit<Routine, 'id' | 'createdAt'> & { id?: string }) => Routine;
+  deleteRoutine: (id: string) => void;
+  addProgram: (p: Program) => void;
+  addCustomExercise: (e: Omit<Exercise, 'id' | 'custom'>) => Exercise;
   replaceAll: (s: PersistedState) => void;
   resetAll: () => void;
 };
@@ -107,6 +131,10 @@ const EMPTY: PersistedState = {
   photos: [],
   prices: {},
   aiUsage: {},
+  workouts: [],
+  routines: {},
+  customExercises: {},
+  activeWorkout: undefined,
   settings: {},
   updatedAt: new Date(0).toISOString(),
 };
@@ -200,16 +228,65 @@ export const useAppStore = create<PersistedState & Actions>()(
         countAiUse: (date) => set({ aiUsage: { ...get().aiUsage, [date]: (get().aiUsage[date] ?? 0) + 1 } }),
         updateSettings: (s) => set({ settings: { ...get().settings, ...s } }),
 
+        startWorkout: (w) => set({ activeWorkout: w }),
+        updateActiveWorkout: (fn) => {
+          const w = get().activeWorkout;
+          if (w) set({ activeWorkout: fn(w) });
+        },
+        finishWorkout: () => {
+          const w = get().activeWorkout;
+          if (!w) return undefined;
+          // Só ficam as séries concluídas; exercícios sem nenhuma série feita saem.
+          const exercises = w.exercises
+            .map((e) => ({ ...e, sets: e.sets.filter((s) => s.done) }))
+            .filter((e) => e.sets.length > 0);
+          const done: Workout = { ...w, exercises, endedAt: new Date().toISOString() };
+          // O dia do treino vira "dia de treino" na dieta (ciclo de carboidrato).
+          const day = todayIso(new Date(w.startedAt));
+          set({
+            workouts: [...get().workouts, done].sort((a, b) => a.startedAt.localeCompare(b.startedAt)),
+            activeWorkout: undefined,
+            trainingDays: { ...get().trainingDays, [day]: true },
+          });
+          return done;
+        },
+        discardWorkout: () => set({ activeWorkout: undefined }),
+        deleteWorkout: (id) => set({ workouts: get().workouts.filter((w) => w.id !== id) }),
+        saveRoutine: (r) => {
+          const routine: Routine = { ...r, id: r.id ?? newId(), createdAt: get().routines[r.id ?? '']?.createdAt ?? new Date().toISOString() };
+          set({ routines: { ...get().routines, [routine.id]: routine } });
+          return routine;
+        },
+        deleteRoutine: (id) => {
+          const { [id]: _removed, ...rest } = get().routines;
+          set({ routines: rest });
+        },
+        addProgram: (p) => {
+          const created = new Date().toISOString();
+          const add = Object.fromEntries(
+            p.routines.map((r) => {
+              const id = newId();
+              return [id, { id, name: r.name, folder: p.name, exercises: r.exercises.map((e) => ({ ...e })), createdAt: created }];
+            }),
+          );
+          set({ routines: { ...get().routines, ...add } });
+        },
+        addCustomExercise: (e) => {
+          const ex: Exercise = { ...e, id: `custom-${newId()}`, custom: true };
+          set({ customExercises: { ...get().customExercises, [ex.id]: ex } });
+          return ex;
+        },
+
         replaceAll: (s) => rawSet({ ...EMPTY, ...s }),
         resetAll: () => rawSet({ ...EMPTY, updatedAt: new Date().toISOString() }),
       };
     },
     {
       name: 'macrofactorbr-v1',
-      version: 2,
+      version: 3,
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => pickPersisted(s),
-      // v1 só tinha perfil, alimentos, diário e pesos.
+      // v1 só tinha perfil, alimentos, diário e pesos; v2 não tinha treinos.
       migrate: (persisted) => ({ ...EMPTY, ...(persisted as Partial<PersistedState>) }),
     },
   ),
@@ -231,6 +308,10 @@ export function pickPersisted(s: PersistedState): PersistedState {
     photos: s.photos,
     prices: s.prices,
     aiUsage: s.aiUsage,
+    workouts: s.workouts,
+    routines: s.routines,
+    customExercises: s.customExercises,
+    activeWorkout: s.activeWorkout,
     settings: s.settings,
     updatedAt: s.updatedAt,
   };
@@ -264,4 +345,12 @@ export function useHydrated(): boolean {
     () => useAppStore.persist.hasHydrated(),
     () => false,
   );
+}
+
+const EXERCISE_BY_ID: Record<string, Exercise> = Object.fromEntries(EXERCISES.map((e) => [e.id, e]));
+
+/** Biblioteca completa: exercícios do app + os que você criou. */
+export function useAllExercises(): Record<string, Exercise> {
+  const custom = useAppStore((s) => s.customExercises);
+  return useMemo(() => ({ ...EXERCISE_BY_ID, ...custom }), [custom]);
 }
