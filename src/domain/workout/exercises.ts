@@ -167,7 +167,7 @@ export const EXERCISES: Exercise[] = ROWS.map(([id, name, primary, secondary, eq
 function norm(s: string): string {
   return s
     .normalize('NFD')
-    .replace(/[̀-ͯ]/g, '')
+    .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase();
 }
 
