@@ -178,7 +178,9 @@ export type Suggestion = { weightKg: number; reps: number; reason: string };
 
 /** Incremento de carga: menor para isolados e halteres (anilhas de 1 kg em cada lado). */
 export function weightStep(ex: Exercise): number {
-  if (ex.equipment === 'halter' || ex.equipment === 'polia') return 1;
+  if (ex.equipment === 'halter' || ex.equipment === 'polia' || ex.equipment === 'caneleira' || ex.equipment === 'elastico') return 1;
+  // Máquinas de placa sobem de 5 em 5 kg na maioria das academias.
+  if (ex.equipment === 'maquina') return 5;
   const compound = ex.secondary.length >= 2;
   return compound ? 2.5 : 2;
 }

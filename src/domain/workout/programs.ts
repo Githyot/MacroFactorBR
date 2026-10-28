@@ -108,4 +108,54 @@ export const PROGRAMS: Program[] = [
       },
     ],
   },
+  {
+    id: 'maquinas-4',
+    name: 'Só máquinas 4x',
+    daysPerWeek: 4,
+    level: 'iniciante',
+    description: 'Superior/inferior com aparelhos articulados, polias e Smith. Aprende fácil e é seguro treinar perto da falha.',
+    routines: [
+      {
+        name: 'Superiores (máquinas) A',
+        exercises: [ex('supino-articulado', 3, 8, 12, 120), ex('puxada-articulada', 3, 8, 12, 120), ex('desenvolvimento-maquina', 3, 8, 12, 90), ex('remada-articulada', 3, 8, 12, 90), ex('rosca-scott-maquina', 2, 10, 15, 60), ex('triceps-maquina', 2, 10, 15, 60)],
+      },
+      {
+        name: 'Inferiores (máquinas) A',
+        exercises: [ex('agachamento-smith', 3, 8, 12, 150), ex('leg-press', 3, 10, 15, 120), ex('cadeira-flexora', 3, 10, 15, 90), ex('cadeira-extensora', 3, 12, 15, 90), ex('panturrilha-sentado', 3, 12, 15, 60)],
+      },
+      {
+        name: 'Superiores (máquinas) B',
+        exercises: [ex('supino-inclinado-articulado', 3, 8, 12, 120), ex('remada-baixa', 3, 10, 12, 90), ex('crucifixo-maquina', 3, 12, 15, 60), ex('elevacao-lateral-maquina', 3, 12, 15, 60), ex('crucifixo-inverso-maquina', 2, 12, 15, 60), ex('rosca-polia', 2, 10, 15, 60), ex('triceps-corda', 2, 10, 15, 60)],
+      },
+      {
+        name: 'Inferiores (máquinas) B',
+        exercises: [ex('hack', 3, 8, 12, 150), ex('mesa-flexora', 3, 10, 12, 90), ex('elevacao-pelvica-maquina', 3, 10, 12, 90), ex('cadeira-abdutora', 3, 12, 15, 60), ex('panturrilha-leg', 3, 12, 15, 60), ex('abdominal-maquina', 3, 10, 15, 60)],
+      },
+    ],
+  },
+  {
+    id: 'gluteos-pernas-4',
+    name: 'Glúteos e pernas 4x',
+    daysPerWeek: 4,
+    level: 'intermediario',
+    description: 'Ênfase em glúteos e pernas (3 dias) com um dia de superiores. Para quem prioriza o inferior.',
+    routines: [
+      {
+        name: 'Glúteo e posterior',
+        exercises: [ex('elevacao-pelvica', 4, 8, 12, 150), ex('terra-romeno', 3, 8, 10, 150), ex('mesa-flexora', 3, 10, 12, 90), ex('abducao-polia', 3, 12, 15, 60), ex('gluteo-polia', 3, 12, 15, 60)],
+      },
+      {
+        name: 'Quadríceps',
+        exercises: [ex('agachamento-livre', 4, 6, 10, 180), ex('leg-press', 3, 10, 12, 120), ex('agachamento-bulgaro', 3, 8, 12, 120), ex('cadeira-extensora', 3, 12, 15, 90), ex('panturrilha-pe', 3, 10, 15, 60)],
+      },
+      {
+        name: 'Superiores',
+        exercises: [ex('puxada-frente', 3, 8, 12, 90), ex('supino-inclinado-halter', 3, 8, 12, 90), ex('remada-baixa', 3, 10, 12, 90), ex('elevacao-lateral', 3, 12, 15, 60), ex('triceps-corda', 2, 10, 15, 60), ex('rosca-alternada', 2, 10, 12, 60)],
+      },
+      {
+        name: 'Glúteo completo',
+        exercises: [ex('hack-invertido', 3, 10, 12, 120), ex('stiff-halter', 3, 10, 12, 120), ex('afundo-reverso', 3, 10, 12, 90), ex('cadeira-abdutora-inclinada', 3, 12, 20, 60), ex('extensao-quadril-polia', 3, 12, 15, 60)],
+      },
+    ],
+  },
 ];

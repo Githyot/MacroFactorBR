@@ -102,3 +102,14 @@ describe('treino', () => {
     expect(t.exercises[0].sets.every((s) => s.weightKg === 80 && !s.done)).toBe(true);
   });
 });
+
+describe('biblioteca ampliada', () => {
+  it('tem aparelhos articulados, smith, polia e filtro por equipamento', () => {
+    expect(EXERCISES.length).toBeGreaterThan(250);
+    const hammer = searchExercises(EXERCISES, '', undefined, 'articulada');
+    expect(hammer.length).toBeGreaterThan(10);
+    expect(hammer.every((e) => e.equipment === 'articulada')).toBe(true);
+    expect(searchExercises(EXERCISES, 'hammer supino')[0].equipment).toBe('articulada');
+    expect(searchExercises(EXERCISES, 'pendulo').map((e) => e.id)).toContain('agachamento-pendulo');
+  });
+});

@@ -25,8 +25,8 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - Custo por 30 g de proteína para comparar marcas.
 
 **Treino (no estilo Hevy)**
-- Biblioteca com 80 exercícios em português, filtro por músculo e exercícios personalizados.
-- Programas prontos para hipertrofia: Full body 3x, Superior/Inferior 4x, Push/Pull/Legs 6x e ABC.
+- Biblioteca com mais de 280 exercícios em português (máquinas articuladas e de placa, polias, Smith, barra W, elástico, kettlebell, TRX e funcional), filtro por músculo e por equipamento, e exercícios personalizados.
+- Programas prontos para hipertrofia: Full body 3x, Superior/Inferior 4x, Push/Pull/Legs 6x, ABC, Só máquinas 4x e Glúteos e pernas 4x.
 - Rotinas editáveis (séries, faixa de repetições, descanso) organizadas em pastas.
 - Treino ao vivo: coluna "Anterior", séries de aquecimento, falha e drop, RPE opcional, timer de descanso com vibração.
 - Progressão dupla automática (sugere quando subir carga), recordes (carga, 1RM estimado, volume, melhor carga por repetição) e gráfico de evolução.

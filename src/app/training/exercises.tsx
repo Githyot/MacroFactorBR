@@ -18,6 +18,7 @@ export default function ExerciseLibrary() {
   const addCustom = useAppStore((s) => s.addCustomExercise);
   const [query, setQuery] = useState('');
   const [muscle, setMuscle] = useState<Muscle | undefined>();
+  const [equipment, setEquipment] = useState<Equipment | undefined>();
   const [creating, setCreating] = useState(false);
   const [draft, setDraft] = useState<{ name: string; primary: Muscle; equipment: Equipment; kind: ExerciseKind }>({
     name: '',
@@ -26,7 +27,7 @@ export default function ExerciseLibrary() {
     kind: 'weight_reps',
   });
 
-  const list = useMemo(() => searchExercises(Object.values(all), query, muscle), [all, query, muscle]);
+  const list = useMemo(() => searchExercises(Object.values(all), query, muscle, equipment), [all, query, muscle, equipment]);
 
   const choose = (id: string) => {
     if (params.pick === 'active') {
@@ -60,6 +61,14 @@ export default function ExerciseLibrary() {
           </Pressable>
         ))}
       </ScrollView>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
+        {[undefined, ...(Object.keys(EQUIPMENT_LABEL) as Equipment[])].map((eq) => (
+          <Pressable key={eq ?? 'all'} onPress={() => setEquipment(eq)} style={[styles.chip, { paddingVertical: 6 }, equipment === eq && styles.chipActive]}>
+            <Text style={[styles.chipText, { fontSize: 13 }, equipment === eq && styles.chipTextActive]}>{eq ? EQUIPMENT_LABEL[eq] : 'Todo equipamento'}</Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+      <Muted>{list.length} exercícios</Muted>
       {creating ? (
         <Card>
           <Title>Novo exercício</Title>
