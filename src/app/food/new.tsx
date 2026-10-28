@@ -3,7 +3,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, Platform, ScrollView, Text, View } from 'react-native';
 
-import { Badge, Button, Card, colors, Field, Muted, parseInput, styles, Title, ToggleRow } from '../../components/ui';
+import { Badge, Button, Card, colors, Field, Muted, parseInput, styles, Title, ToggleRow, useTheme } from '../../components/ui';
 import { FoodSource, Meal } from '../../domain/foods';
 import { computeHighIn, guessNameFromFront, HIGH_IN_LABEL, HighIn, parseHighInStamp } from '../../domain/labelFront';
 import { parseNutritionLabel } from '../../domain/labelParser';
@@ -29,6 +29,7 @@ function readDraft(raw?: string): FoodDraft | undefined {
 }
 
 export default function NewFoodScreen() {
+  useTheme();
   const params = useLocalSearchParams<{ barcode?: string; draft?: string; ocr?: string; meal?: Meal; date?: string }>();
   const addFood = useAppStore((s) => s.addFood);
   const [draft] = useState(() => readDraft(params.draft));

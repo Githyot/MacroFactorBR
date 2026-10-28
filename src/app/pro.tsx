@@ -2,7 +2,7 @@ import { Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, colors, Muted, styles, Title, ToggleRow } from '../components/ui';
+import { Button, Card, colors, Muted, styles, Title, ToggleRow, useTheme } from '../components/ui';
 import { PRO_FEATURES, PRO_PRICES, ProFeature } from '../domain/pro';
 import { usePro } from '../hooks/usePro';
 import { config } from '../services/config';
@@ -12,6 +12,7 @@ import { useAppStore } from '../store/useAppStore';
 type Plan = Awaited<ReturnType<typeof getPlans>>[number];
 
 export default function ProScreen() {
+  useTheme();
   const isPro = usePro();
   const settings = useAppStore((s) => s.settings);
   const updateSettings = useAppStore((s) => s.updateSettings);

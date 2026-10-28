@@ -7,14 +7,15 @@ export type CheckIn = {
   date: string; // AAAA-MM-DD
   weeklyChangeKg: number;
   targetWeeklyChangeKg: number;
+  /** Quanto a meta de calorias mudou desde o check-in anterior (só informativo). */
   adjustmentKcal: number;
+  /** Meta de calorias no momento do check-in. */
+  kcalTarget?: number;
   verdict: 'keep' | 'increase' | 'decrease' | 'insufficient';
   dirtyBulk: boolean;
   message: string;
 };
 
-const KCAL_PER_KG = 7700;
-const MAX_STEP = 250; // nunca mexer mais que isso de uma vez
 const TOLERANCE_KG = 0.1; // diferença semanal que não vale ajuste (ruído)
 
 export function isCheckInDue(lastCheckInDate: string | undefined, today: string): boolean {
@@ -28,7 +29,13 @@ function fmtKg(kg: number): string {
   return `${g > 0 ? '+' : ''}${g} g`;
 }
 
-export function runCheckIn(profile: Profile, adaptive: AdaptiveResult, today: string): CheckIn {
+/**
+ * Com dados suficientes, a meta já usa o gasto real (TDEE adaptativo), que corrige sozinho
+ * um ganho rápido ou lento demais. O check-in mostra o ritmo, compara com o alvo e
+ * registra quanto a meta mudou desde a semana anterior. Não soma ajuste por cima do
+ * gasto adaptativo, o que corrigiria duas vezes.
+ */
+export function runCheckIn(profile: Profile, adaptive: AdaptiveResult, today: string, currentKcal?: number, previousKcal?: number): CheckIn {
   const target = targetWeeklyChangeKg(profile);
   if (adaptive.status !== 'ok') {
     return {
@@ -36,6 +43,7 @@ export function runCheckIn(profile: Profile, adaptive: AdaptiveResult, today: st
       weeklyChangeKg: 0,
       targetWeeklyChangeKg: target,
       adjustmentKcal: 0,
+      kcalTarget: currentKcal,
       verdict: 'insufficient',
       dirtyBulk: false,
       message: `Ainda faltam dados: registre o peso quase todo dia e as refeições (${adaptive.loggedDays} dias registrados nas últimas 4 semanas). Mantenha as metas atuais.`,
@@ -44,20 +52,22 @@ export function runCheckIn(profile: Profile, adaptive: AdaptiveResult, today: st
 
   const actual = adaptive.weeklyChangeKg;
   const diff = target - actual; // positivo: está ganhando menos que o alvo
-  let adjustment = 0;
-  if (Math.abs(diff) > TOLERANCE_KG / 2) {
-    adjustment = Math.round(((diff * KCAL_PER_KG) / 7) / 25) * 25;
-    adjustment = Math.max(-MAX_STEP, Math.min(MAX_STEP, adjustment));
-  }
+  const verdict: CheckIn['verdict'] = Math.abs(diff) <= TOLERANCE_KG / 2 ? 'keep' : diff > 0 ? 'increase' : 'decrease';
   // Bulking sujo: ganhando mais de 1,5x o alvo e mais de 0,5% do peso por semana.
   const dirtyBulk = profile.goal === 'bulk' && actual > target * 1.5 && actual > profile.weightKg * 0.005;
-  const verdict: CheckIn['verdict'] = adjustment > 0 ? 'increase' : adjustment < 0 ? 'decrease' : 'keep';
+  const change = currentKcal !== undefined && previousKcal !== undefined ? Math.round((currentKcal - previousKcal) / 25) * 25 : 0;
 
   let message = `Você ${actual >= 0 ? 'ganhou' : 'perdeu'} ${fmtKg(actual)} por semana na tendência; o alvo era ${fmtKg(target)}. `;
-  if (verdict === 'keep') message += 'Ritmo certo: mantenha as metas.';
-  else if (verdict === 'increase') message += `Vamos subir ${adjustment} kcal por dia.`;
-  else message += `Vamos reduzir ${-adjustment} kcal por dia.`;
+  if (verdict === 'keep') message += 'Ritmo certo.';
+  else if (verdict === 'increase') message += 'Está abaixo do ritmo planejado.';
+  else message += 'Está acima do ritmo planejado.';
+  message += ` Seu gasto real estimado é ${adaptive.tdee} kcal`;
+  if (currentKcal !== undefined) {
+    message += `, então a meta ficou em ${currentKcal} kcal`;
+    if (change !== 0) message += ` (${change > 0 ? '+' : ''}${change} kcal desde o último check-in)`;
+  }
+  message += '.';
   if (dirtyBulk) message += ' Atenção: ganho rápido demais tende a virar gordura (bulking sujo).';
 
-  return { date: today, weeklyChangeKg: actual, targetWeeklyChangeKg: target, adjustmentKcal: adjustment, verdict, dirtyBulk, message };
+  return { date: today, weeklyChangeKg: actual, targetWeeklyChangeKg: target, adjustmentKcal: change, kcalTarget: currentKcal, verdict, dirtyBulk, message };
 }

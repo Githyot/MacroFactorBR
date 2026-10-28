@@ -1,8 +1,9 @@
-import { Stack } from 'expo-router';
+import { DarkTheme, DefaultTheme, Stack, Theme, ThemeProvider } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 
-import { colors } from '../components/ui';
+import { useHeaderOptions } from '../components/navTheme';
+import { colors, useTheme } from '../components/ui';
 import { initPurchases, isProActive } from '../services/purchases';
 import { currentUserId, supabase } from '../services/supabase';
 import { pullAndMerge, startAutoSync } from '../services/sync';
@@ -43,14 +44,21 @@ function useBackgroundServices() {
 
 export default function RootLayout() {
   useBackgroundServices();
+  const { dark, key } = useTheme();
+  const header = useHeaderOptions();
+  const navTheme = useMemo<Theme>(() => {
+    const t = dark ? DarkTheme : DefaultTheme;
+    return { ...t, colors: { ...t.colors, primary: colors.primary, background: header.background, card: colors.bar, text: colors.text, border: colors.border } };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  const { background, ...headerOptions } = header;
   return (
-    <>
-      <StatusBar style="dark" />
+    <ThemeProvider value={navTheme}>
+      <StatusBar style={dark ? 'light' : 'dark'} />
       <Stack
         screenOptions={{
-          headerStyle: { backgroundColor: colors.card },
-          headerTintColor: colors.text,
-          contentStyle: { backgroundColor: colors.bg },
+          ...headerOptions,
+          contentStyle: { backgroundColor: background },
           headerBackTitle: 'Voltar',
         }}
       >
@@ -60,11 +68,18 @@ export default function RootLayout() {
         <Stack.Screen name="food/[id]" options={{ title: 'Adicionar ao diário' }} />
         <Stack.Screen name="recipe/[id]" options={{ title: 'Receita' }} />
         <Stack.Screen name="quick-add" options={{ title: 'Registro rápido' }} />
+        <Stack.Screen name="plan" options={{ title: 'Cardápio da semana' }} />
         <Stack.Screen name="checkin" options={{ title: 'Check-in semanal' }} />
         <Stack.Screen name="micros" options={{ title: 'Micronutrientes' }} />
+        <Stack.Screen name="supplements" options={{ title: 'Suplementação' }} />
         <Stack.Screen name="account" options={{ title: 'Conta e dados' }} />
+        <Stack.Screen name="training/active" options={{ title: 'Treino', gestureEnabled: false }} />
+        <Stack.Screen name="training/exercises" options={{ title: 'Exercícios' }} />
+        <Stack.Screen name="training/[id]" options={{ title: 'Treino' }} />
+        <Stack.Screen name="exercise/[id]" options={{ title: 'Exercício' }} />
+        <Stack.Screen name="routine/[id]" options={{ title: 'Rotina' }} />
         <Stack.Screen name="pro" options={{ title: 'MacroFactorBR Pro', presentation: 'modal' }} />
       </Stack>
-    </>
+    </ThemeProvider>
   );
 }

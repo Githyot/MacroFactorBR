@@ -2,18 +2,19 @@ import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, Chips, colors, LinkText, Muted, styles, Title } from '../../components/ui';
-import { addDays, MEALS, todayIso } from '../../domain/foods';
-import { generateDay, shoppingList } from '../../domain/mealPlan';
-import { hasFeature } from '../../domain/pro';
-import { usePro } from '../../hooks/usePro';
-import { useTargets } from '../../hooks/useTargets';
-import { useAllFoods, useAppStore } from '../../store/useAppStore';
+import { Button, Card, Chips, colors, LinkText, Muted, styles, Title, useTheme } from '../components/ui';
+import { addDays, MEALS, todayIso } from '../domain/foods';
+import { generateDay, shoppingList } from '../domain/mealPlan';
+import { hasFeature } from '../domain/pro';
+import { usePro } from '../hooks/usePro';
+import { useTargets } from '../hooks/useTargets';
+import { useAllFoods, useAppStore } from '../store/useAppStore';
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
 const mealLabel = Object.fromEntries(MEALS.map((m) => [m.key, m.label]));
 
 export default function PlanScreen() {
+  useTheme();
   const data = useTargets();
   const foods = useAllFoods();
   const addEntries = useAppStore((s) => s.addEntries);

@@ -13,6 +13,8 @@ export type Recipe = {
   cookedWeightGrams?: number;
   /** Em quantas marmitas/porções a receita foi dividida. */
   portions: number;
+  /** Excluída mas ainda usada no diário. */
+  archived?: boolean;
   createdAt: string;
 };
 
@@ -48,6 +50,7 @@ export function recipeToFood(recipe: Recipe, foods: Record<string, Food>): Food 
     per100g: recipePer100g(recipe, foods),
     servingGrams: Math.round(portionGrams),
     servingDescription: recipe.portions > 1 ? '1 marmita' : 'receita inteira',
+    archived: recipe.archived,
     createdAt: recipe.createdAt,
   };
 }

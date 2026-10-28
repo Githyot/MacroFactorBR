@@ -3,13 +3,14 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, colors, Field, Muted, styles, Title } from '../components/ui';
+import { Button, Card, colors, Field, Muted, styles, Title, useTheme } from '../components/ui';
 import { isValidGtin, Meal } from '../domain/foods';
 import { fetchOffProduct } from '../domain/openFoodFacts';
 import { findSharedByBarcode, sharedToFood } from '../services/sharedFoods';
 import { findFoodByBarcode, useAllFoods, useAppStore } from '../store/useAppStore';
 
 export default function ScanScreen() {
+  useTheme();
   const { meal, date } = useLocalSearchParams<{ meal?: Meal; date?: string }>();
   const addFood = useAppStore((s) => s.addFood);
   const [permission, requestPermission] = useCameraPermissions();

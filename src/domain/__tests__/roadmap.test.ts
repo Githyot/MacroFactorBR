@@ -9,7 +9,7 @@ import { parseFreeText, resolveItems } from '../freeText';
 import { computeHighIn, guessNameFromFront, parseHighInStamp } from '../labelFront';
 import { findMeasure, measuresFor } from '../measures';
 import { generateDay, generateWeek, shoppingList } from '../mealPlan';
-import { microStatus, microTargets, suggestFoodsFor } from '../micros';
+import { microCoverage, microStatus, microTargets, suggestFoodsFor } from '../micros';
 import { leucinePer100g, proteinSource } from '../protein';
 import { decodeRecipe, encodeRecipe, Recipe, recipePer100g, recipeToFood } from '../recipes';
 import { diaryCsv, reportHtml } from '../report';
@@ -111,6 +111,20 @@ describe('micronutrientes', () => {
     const s = microStatus({ sodium: 3000 }, microTargets('male', 30)).find((x) => x.key === 'sodium')!;
     expect(s.ok).toBe(false);
   });
+  it('sem dado de vitamina D nos alimentos, não acusa falta', () => {
+    const arroz = LIST.find((f) => f.per100g.vitaminD === undefined && (f.per100g.kcal ?? 0) > 100)!;
+    const entries = [{ id: '1', date: '2026-10-28', meal: 'lunch' as const, foodId: arroz.id, grams: 300 }];
+    const cov = microCoverage(entries, FOODS, ['vitaminD', 'iron']);
+    expect(cov.vitaminD).toBe(0);
+    const st = microStatus({ vitaminD: 0 }, microTargets('male', 30), cov).find((x) => x.key === 'vitaminD')!;
+    expect(st.known).toBe(false);
+    expect(microStatus({ vitaminD: 0 }, microTargets('male', 30)).find((x) => x.key === 'vitaminD')!.known).toBe(true);
+  });
+  it('alimento arquivado some da busca', () => {
+    const f: Food = { id: 'x', name: 'Whey velho', source: 'manual', per100g: { kcal: 400 }, createdAt: '', archived: true };
+    expect(searchFoods([f], 'whey')).toHaveLength(0);
+    expect(searchFoods([{ ...f, archived: false }], 'whey')).toHaveLength(1);
+  });
   it('sugere comida brasileira para ferro', () => {
     const s = suggestFoodsFor('iron', LIST);
     expect(s.length).toBeGreaterThan(2);
@@ -146,10 +160,18 @@ describe('check-in semanal', () => {
   it('sobe calorias quando o peso não sobe no bulk', () => {
     const d = days(28);
     const r = estimateAdaptiveTdee(d.map((date) => ({ date, kg: 80 })), Object.fromEntries(d.map((x) => [x, 2800])), d[27]);
-    const c = runCheckIn(profile, r, d[27]);
+    const kcal = computeTargets(profile, r.status === 'ok' ? r.tdee : undefined).kcal;
+    const c = runCheckIn(profile, r, d[27], kcal, 2800);
     expect(c.verdict).toBe('increase');
-    expect(c.adjustmentKcal).toBeGreaterThan(0);
-    expect(c.adjustmentKcal).toBeLessThanOrEqual(250);
+    // Meta nova = gasto real (2800, peso parado) + superávit; o check-in só registra a diferença.
+    expect(kcal).toBeGreaterThan(2800);
+    expect(c.adjustmentKcal).toBe(Math.round((kcal - 2800) / 25) * 25);
+    expect(c.kcalTarget).toBe(kcal);
+  });
+  it('ajuste antigo de check-in não se soma ao gasto adaptativo', () => {
+    const p = { ...profile, kcalAdjustment: 200 };
+    expect(computeTargets(p, 2800).kcal).toBe(computeTargets(profile, 2800).kcal);
+    expect(computeTargets(p).kcal).toBe(computeTargets(profile).kcal + 200);
   });
   it('detecta bulking sujo', () => {
     const d = days(42);

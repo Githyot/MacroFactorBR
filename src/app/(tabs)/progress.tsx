@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { Button, Card, Chips, colors, Field, LinkText, Muted, parseInput, styles, Title } from '../../components/ui';
+import { Button, Card, Chips, colors, Field, LinkText, Muted, parseInput, styles, Title, useTheme } from '../../components/ui';
 import { MIN_LOGGED_DAYS, MIN_WEIGH_INS, trendWeights } from '../../domain/adaptiveTdee';
 import { todayIso } from '../../domain/foods';
 import { hasFeature } from '../../domain/pro';
@@ -29,7 +29,7 @@ function TrendChart({ points }: { points: { date: string; kg: number; trend: num
     <View style={{ height: h, flexDirection: 'row', alignItems: 'stretch', gap: 2, marginVertical: 8 }}>
       {points.map((p) => (
         <View key={p.date} style={{ flex: 1, position: 'relative' }}>
-          <View style={{ position: 'absolute', top: y(p.kg) - 3, left: '50%', marginLeft: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: '#B7C4BD' }} />
+          <View style={{ position: 'absolute', top: y(p.kg) - 3, left: '50%', marginLeft: -3, width: 6, height: 6, borderRadius: 3, backgroundColor: colors.muted }} />
           <View style={{ position: 'absolute', top: y(p.trend) - 2, left: 0, right: 0, height: 4, borderRadius: 2, backgroundColor: colors.primary }} />
         </View>
       ))}
@@ -38,6 +38,7 @@ function TrendChart({ points }: { points: { date: string; kg: number; trend: num
 }
 
 export default function ProgressScreen() {
+  useTheme();
   const weights = useAppStore((s) => s.weights);
   const logWeight = useAppStore((s) => s.logWeight);
   const removeWeight = useAppStore((s) => s.removeWeight);
@@ -82,10 +83,16 @@ export default function ProgressScreen() {
 
   const MFIELDS: { key: keyof BodyMeasurement; label: string; suffix: string }[] = [
     { key: 'waistCm', label: 'Cintura', suffix: 'cm' },
-    { key: 'chestCm', label: 'Peito', suffix: 'cm' },
-    { key: 'armCm', label: 'Braço', suffix: 'cm' },
-    { key: 'thighCm', label: 'Coxa', suffix: 'cm' },
     { key: 'hipCm', label: 'Quadril', suffix: 'cm' },
+    { key: 'chestCm', label: 'Peito', suffix: 'cm' },
+    { key: 'shouldersCm', label: 'Ombros', suffix: 'cm' },
+    { key: 'neckCm', label: 'Pescoço', suffix: 'cm' },
+    { key: 'armCm', label: 'Braço esq.', suffix: 'cm' },
+    { key: 'armRightCm', label: 'Braço dir.', suffix: 'cm' },
+    { key: 'forearmCm', label: 'Antebraço', suffix: 'cm' },
+    { key: 'thighCm', label: 'Coxa esq.', suffix: 'cm' },
+    { key: 'thighRightCm', label: 'Coxa dir.', suffix: 'cm' },
+    { key: 'calfCm', label: 'Panturrilha', suffix: 'cm' },
     { key: 'bodyFatPct', label: '% gordura', suffix: '%' },
   ];
 
