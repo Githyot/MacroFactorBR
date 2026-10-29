@@ -1,6 +1,7 @@
 # Gera os instaladores e anexa à release: APK de Android, versão web (.zip) e
 # app de desktop Linux (AppImage, DEB e RPM).
 # Roda sozinho quando uma release é publicada, ou à mão em Actions › Instaladores.
+# Em pull requests que mexem no empacotamento, só compila (não anexa nada).
 
 name: Instaladores
 
@@ -13,6 +14,12 @@ on:
         description: Tag da release que recebe os arquivos
         required: true
         default: v1.0.0
+  pull_request:
+    paths:
+      - .github/workflows/release-builds.yml
+      - desktop/**
+      - app.json
+      - package.json
 
 permissions:
   contents: write
@@ -34,12 +41,13 @@ jobs:
       - run: npm ci
       - run: npx expo export -p web
       - name: Compacta a versão web
-        run: cd dist && zip -qr "../MacroFactorBR-${TAG#v}-web.zip" .
+        run: V=${TAG:-vdev}; cd dist && zip -qr "../MacroFactorBR-${V#v}-web.zip" .
       - uses: actions/upload-artifact@v4
         with:
           name: web
           path: dist
       - name: Anexa à release
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$TAG" MacroFactorBR-*-web.zip --clobber
@@ -63,9 +71,17 @@ jobs:
         working-directory: desktop
         run: |
           npm install --no-audit --no-fund
-          npm pkg set version="${TAG#v}"
+          if [ -n "$TAG" ]; then npm pkg set version="${TAG#v}"; fi
           npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            desktop/release/*.AppImage
+            desktop/release/*.deb
+            desktop/release/*.rpm
       - name: Anexa à release
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$TAG" desktop/release/*.AppImage desktop/release/*.deb desktop/release/*.rpm --clobber
@@ -89,9 +105,13 @@ jobs:
       - name: Compila o APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
+      - run: cp android/app/build/outputs/apk/release/app-release.apk "MacroFactorBR-$(V=${TAG:-vdev}; echo ${V#v})-android.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: MacroFactorBR-*-android.apk
       - name: Anexa à release
+        if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          cp android/app/build/outputs/apk/release/app-release.apk "MacroFactorBR-${TAG#v}-android.apk"
-          gh release upload "$TAG" MacroFactorBR-*-android.apk --clobber
+        run: gh release upload "$TAG" MacroFactorBR-*-android.apk --clobber
