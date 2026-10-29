@@ -1,0 +1,117 @@
+# Gera os instaladores e anexa à release: APK de Android, versão web (.zip) e
+# app de desktop Linux (AppImage, DEB e RPM).
+# Roda sozinho quando uma release é publicada, ou à mão em Actions › Instaladores.
+# Em pull requests que mexem no empacotamento, só compila (não anexa nada).
+
+name: Instaladores
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Tag da release que recebe os arquivos
+        required: true
+        default: v1.0.0
+  pull_request:
+    paths:
+      - .github/workflows/release-builds.yml
+      - desktop/**
+      - app.json
+      - package.json
+
+permissions:
+  contents: write
+
+env:
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && env.TAG || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx expo export -p web
+      - name: Compacta a versão web
+        run: V=${TAG:-vdev}; cd dist && zip -qr "../MacroFactorBR-${V#v}-web.zip" .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: web
+          path: dist
+      - name: Anexa à release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" MacroFactorBR-*-web.zip --clobber
+
+  linux:
+    needs: web
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && env.TAG || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: web
+          path: desktop/web
+      - run: sudo apt-get update && sudo apt-get install -y rpm
+      - name: Empacota AppImage, DEB e RPM
+        working-directory: desktop
+        run: |
+          npm install --no-audit --no-fund
+          if [ -n "$TAG" ]; then npm pkg set version="${TAG#v}"; fi
+          npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: linux
+          path: |
+            desktop/release/*.AppImage
+            desktop/release/*.deb
+            desktop/release/*.rpm
+      - name: Anexa à release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" desktop/release/*.AppImage desktop/release/*.deb desktop/release/*.rpm --clobber
+
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'release' && env.TAG || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - run: npm ci
+      - run: npx expo prebuild -p android --no-install
+      - name: Compila o APK
+        working-directory: android
+        run: ./gradlew assembleRelease --no-daemon
+      - run: cp android/app/build/outputs/apk/release/app-release.apk "MacroFactorBR-$(V=${TAG:-vdev}; echo ${V#v})-android.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android
+          path: MacroFactorBR-*-android.apk
+      - name: Anexa à release
+        if: github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$TAG" MacroFactorBR-*-android.apk --clobber

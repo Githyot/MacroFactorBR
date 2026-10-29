@@ -41,3 +41,7 @@ yarn-error.*
 /android
 
 .env
+
+# Native (gerado pelo expo prebuild)
+/android
+/ios
