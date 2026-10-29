@@ -58,6 +58,10 @@ export type Settings = {
   colorMode?: ColorMode;
   /** O app tem dois modos: Dieta (diário, alimentos, progresso) e Treino (estilo Hevy). */
   appMode?: 'dieta' | 'treino';
+  /** Pastas de rotinas na ordem escolhida (inclui pastas ainda vazias). */
+  routineFolders?: string[];
+  /** Pastas recolhidas na aba Treino. */
+  collapsedFolders?: string[];
 };
 
 /** Dados que vão para o aparelho e para a nuvem. */

@@ -1,10 +1,13 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import { router, usePathname } from 'expo-router';
 import { Tabs } from 'expo-router/js-tabs';
-import { ComponentProps } from 'react';
+import { ComponentProps, useEffect, useRef } from 'react';
 import { ColorValue } from 'react-native';
 
+import { ModeSwitch, useAppMode } from '../../components/ModeSwitch';
 import { useHeaderOptions } from '../../components/navTheme';
 import { colors, isGlass, useTheme } from '../../components/ui';
+import { useHydrated } from '../../store/useAppStore';
 
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -18,6 +21,19 @@ export default function TabsLayout() {
   const { def } = useTheme();
   const { background, ...header } = useHeaderOptions();
   const glass = isGlass();
+  const mode = useAppMode();
+  const hydrated = useHydrated();
+  const pathname = usePathname();
+  const opened = useRef(false);
+  // Abre direto no modo em que o app foi deixado.
+  useEffect(() => {
+    if (!hydrated || opened.current) return;
+    opened.current = true;
+    if (mode === 'treino' && pathname === '/') router.replace('/home');
+  }, [hydrated, mode, pathname]);
+  const diet = mode === 'dieta';
+  // href: null esconde a aba do outro modo sem desmontar as rotas.
+  const only = (show: boolean) => (show ? {} : { href: null });
   return (
     <Tabs
       screenOptions={{
@@ -32,13 +48,16 @@ export default function TabsLayout() {
         },
         tabBarLabelStyle: def.webFont ? { fontFamily: def.webFont } : undefined,
         sceneStyle: { backgroundColor: background },
+        headerRight: () => <ModeSwitch />,
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Hoje', tabBarIcon: icon('today-outline') }} />
-      <Tabs.Screen name="foods" options={{ title: 'Alimentos', tabBarIcon: icon('nutrition-outline') }} />
-      <Tabs.Screen name="workout" options={{ title: 'Treino', tabBarIcon: icon('barbell-outline') }} />
-      <Tabs.Screen name="progress" options={{ title: 'Progresso', tabBarIcon: icon('trending-up-outline') }} />
-      <Tabs.Screen name="profile" options={{ title: 'Perfil', tabBarIcon: icon('person-outline') }} />
+      <Tabs.Screen name="index" options={{ title: 'Hoje', tabBarIcon: icon('today-outline'), ...only(diet) }} />
+      <Tabs.Screen name="foods" options={{ title: 'Alimentos', tabBarIcon: icon('nutrition-outline'), ...only(diet) }} />
+      <Tabs.Screen name="progress" options={{ title: 'Progresso', tabBarIcon: icon('trending-up-outline'), ...only(diet) }} />
+      <Tabs.Screen name="profile" options={{ title: diet ? 'Perfil' : 'Configurações', tabBarIcon: icon('person-outline'), ...only(diet) }} />
+      <Tabs.Screen name="home" options={{ title: 'Início', tabBarIcon: icon('home-outline'), ...only(!diet) }} />
+      <Tabs.Screen name="workout" options={{ title: 'Treino', tabBarIcon: icon('barbell-outline'), ...only(!diet) }} />
+      <Tabs.Screen name="athlete" options={{ title: 'Perfil', tabBarIcon: icon('person-outline'), ...only(!diet) }} />
     </Tabs>
   );
 }

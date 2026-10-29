@@ -76,6 +76,13 @@ export default function RootLayout() {
         <Stack.Screen name="training/active" options={{ title: 'Treino', gestureEnabled: false }} />
         <Stack.Screen name="training/exercises" options={{ title: 'Exercícios' }} />
         <Stack.Screen name="training/[id]" options={{ title: 'Treino' }} />
+        <Stack.Screen name="training/stats" options={{ title: 'Estatísticas' }} />
+        <Stack.Screen name="training/muscle-sets" options={{ title: 'Séries por músculo' }} />
+        <Stack.Screen name="training/distribution" options={{ title: 'Distribuição muscular' }} />
+        <Stack.Screen name="training/body" options={{ title: 'Distribuição no corpo' }} />
+        <Stack.Screen name="training/top-exercises" options={{ title: 'Principais exercícios' }} />
+        <Stack.Screen name="training/calendar" options={{ title: 'Calendário' }} />
+        <Stack.Screen name="training/report" options={{ title: 'Relatório mensal' }} />
         <Stack.Screen name="exercise/[id]" options={{ title: 'Exercício' }} />
         <Stack.Screen name="routine/[id]" options={{ title: 'Rotina' }} />
         <Stack.Screen name="pro" options={{ title: 'MacroFactorBR Pro', presentation: 'modal' }} />
