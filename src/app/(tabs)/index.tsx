@@ -2,6 +2,7 @@ import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { switchMode } from '../../components/ModeSwitch';
 import { Badge, Button, Card, colors, LinkText, MacroRow, Muted, NavRow, ProgressBar, styles, Title, ToggleRow, useTheme } from '../../components/ui';
 import { SupplementChecklist } from '../../components/SupplementChecklist';
 import { isCheckInDue } from '../../domain/checkin';
@@ -259,7 +260,15 @@ export default function TodayScreen() {
 
       <Card>
         <NavRow href="/plan" title="Cardápio da semana" subtitle="Refeições prontas que batem suas metas e lista de compras" />
-        <NavRow href="/workout" title="Treino" subtitle={isTrainingDay ? 'Dia de treino registrado' : 'Registrar o treino de hoje'} />
+        <Pressable onPress={() => switchMode('treino')} style={({ pressed }) => ({ paddingVertical: 10, opacity: pressed ? 0.6 : 1 })}>
+          <View style={[styles.rowBetween, { marginBottom: 0 }]}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.text, { fontSize: 15, fontWeight: '600' }]}>Ir para o modo Treino</Text>
+              <Text style={styles.muted}>{isTrainingDay ? 'Dia de treino registrado' : 'Registrar o treino de hoje'}</Text>
+            </View>
+            <Text style={{ color: colors.muted, fontSize: 18, marginLeft: 8 }}>›</Text>
+          </View>
+        </Pressable>
       </Card>
 
       <Card>

@@ -4,7 +4,7 @@
 
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, ScrollView, Share, Text, View } from 'react-native';
 
 import { BarChart, HBar, Legend, RadarChart } from '../../components/charts';
@@ -41,7 +41,7 @@ export default function MonthlyReportScreen() {
   const month = params.month && /^\d{4}-\d{2}$/.test(params.month) ? params.month : prevMonth(today.slice(0, 7));
   const [metric, setMetric] = useState<Extract<Metric, 'workouts' | 'duration' | 'volume' | 'sets'>>('workouts');
   const [more, setMore] = useState({ muscles: false, top: false, records: false });
-  const r = useMemo(() => monthlyReport(workouts, exercises, month), [workouts, exercises, month]);
+  const r = monthlyReport(workouts, exercises, month);
 
   const title = `${cap(monthName(month))} de ${month.slice(0, 4)}`;
   const delta = r.totals.workouts - r.previous.workouts;

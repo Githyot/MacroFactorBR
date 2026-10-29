@@ -2,7 +2,11 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { LineChart } from '../../components/charts';
+import { ExerciseAnimation } from '../../components/ExerciseAnimation';
+import { Pills } from '../../components/training';
 import { Card, colors, Field, Muted, parseInput, styles, Title, useTheme } from '../../components/ui';
+import { MEDIA_CREDIT } from '../../domain/workout/media';
 import { EQUIPMENT_LABEL, MUSCLE_LABEL } from '../../domain/workout/exercises';
 import { estimate1RM, isWorkingSet, personalRecords, platesPerSide, previousSets, suggestNext } from '../../domain/workout/training';
 import { useAllExercises, useAppStore } from '../../store/useAppStore';
@@ -16,6 +20,7 @@ export default function ExerciseDetail() {
   const workouts = useAppStore((s) => s.workouts);
   const ex = exercises[id];
   const [plateTarget, setPlateTarget] = useState('');
+  const [chartKind, setChartKind] = useState<'best1RM' | 'heaviest' | 'volume'>('best1RM');
 
   const sessions = useMemo(
     () =>
@@ -29,6 +34,8 @@ export default function ExerciseDetail() {
             date: w.startedAt.slice(0, 10),
             sets: work,
             best1RM: Math.max(0, ...work.map((s) => estimate1RM(s.weightKg ?? 0, s.reps ?? 0))),
+            heaviest: Math.max(0, ...work.map((s) => s.weightKg ?? 0)),
+            volume: work.reduce((n, s) => n + (s.weightKg ?? 0) * (s.reps ?? 0), 0),
           };
         }),
     [workouts, id],
@@ -45,14 +52,16 @@ export default function ExerciseDetail() {
   const pr = personalRecords(workouts, id);
   const suggestion = ex.kind === 'weight_reps' ? suggestNext(ex, previousSets(workouts, id)) : undefined;
   const chart = sessions.slice(-16);
-  const maxRM = Math.max(1, ...chart.map((s) => s.best1RM));
-  const minRM = Math.min(...chart.map((s) => s.best1RM).filter((v) => v > 0), maxRM);
   const target = parseInput(plateTarget);
   const plates = target ? platesPerSide(target) : undefined;
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: ex.name }} />
+      <View style={{ alignItems: 'center' }}>
+        <ExerciseAnimation exerciseId={ex.id} size={260} />
+        {ex.custom ? null : <Muted style={{ fontSize: 11, marginTop: 4 }}>{MEDIA_CREDIT}</Muted>}
+      </View>
       <Card>
         <Title>{ex.name}</Title>
         <Muted>
@@ -98,19 +107,25 @@ export default function ExerciseDetail() {
         </Card>
       ) : null}
 
-      {chart.length >= 2 ? (
+      {chart.length >= 2 && ex.kind === 'weight_reps' ? (
         <Card>
-          <Title>Evolução do 1RM estimado</Title>
-          <View style={{ height: 120, flexDirection: 'row', alignItems: 'flex-end', gap: 4 }}>
-            {chart.map((s) => {
-              // Escala a partir de um pouco abaixo do mínimo para a variação aparecer.
-              const floor = minRM * 0.9;
-              const h = s.best1RM > 0 ? 12 + ((s.best1RM - floor) / Math.max(1, maxRM - floor)) * 100 : 4;
-              return <View key={s.id} style={{ flex: 1, height: h, borderRadius: 4, backgroundColor: s.best1RM === maxRM ? colors.primary : colors.primarySoft }} />;
-            })}
-          </View>
+          <Title>Evolução</Title>
+          <LineChart
+            series={[{ color: colors.primary, values: chart.map((x) => x[chartKind]) }]}
+            labels={chart.map((x) => x.date.slice(8, 10) + '/' + x.date.slice(5, 7))}
+            height={180}
+          />
+          <Pills
+            options={[
+              { value: 'best1RM', label: '1RM estimado' },
+              { value: 'heaviest', label: 'Maior carga' },
+              { value: 'volume', label: 'Volume do treino' },
+            ]}
+            value={chartKind}
+            onChange={setChartKind}
+          />
           <Muted style={{ marginTop: 6 }}>
-            {kg(chart[0].best1RM)} → {kg(chart[chart.length - 1].best1RM)} em {chart.length} treinos
+            {kg(chart[0][chartKind])} → {kg(chart[chart.length - 1][chartKind])} em {chart.length} treinos
           </Muted>
         </Card>
       ) : null}

@@ -1,7 +1,9 @@
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
+import { ExerciseAnimation } from '../../components/ExerciseAnimation';
+import { shareWorkout } from '../../components/training';
 import { Button, Card, colors, LinkText, Muted, styles, Title, useTheme } from '../../components/ui';
 import { PROTEIN_PER_MEAL_PER_KG } from '../../domain/targets';
 import {
@@ -101,13 +103,17 @@ export default function WorkoutDetail() {
         const ex = exercises[e.exerciseId];
         return (
           <Card key={`${e.exerciseId}-${i}`}>
-            <LinkText onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: e.exerciseId } })}>{ex?.name ?? '?'}</LinkText>
+            <Pressable style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 6 }} onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: e.exerciseId } })}>
+              <ExerciseAnimation exerciseId={e.exerciseId} size={44} animate={false} round />
+              <Text style={{ flex: 1, color: colors.primary, fontWeight: '700', fontSize: 16 }}>{ex?.name ?? '?'}</Text>
+            </Pressable>
+            {e.notes ? <Muted style={{ marginBottom: 4 }}>📝 {e.notes}</Muted> : null}
             {e.sets.map((s, j) => (
               <View key={j} style={[styles.rowBetween, { paddingVertical: 2 }]}>
                 <Text style={styles.muted}>{s.type === 'normal' ? `Série ${j + 1}` : SET_TYPE_LABEL[s.type]}</Text>
                 <Text style={{ color: colors.text, fontVariant: ['tabular-nums'] }}>
                   {ex?.kind === 'duration'
-                    ? `${Math.round((s.durationSec ?? 0) / 60)} min`
+                    ? `${s.distanceKm ? `${String(s.distanceKm).replace('.', ',')} km em ` : ''}${Math.round((s.durationSec ?? 0) / 60)} min`
                     : ex?.kind === 'weight_reps'
                       ? `${String(s.weightKg ?? 0).replace('.', ',')} kg × ${s.reps}`
                       : `${s.reps} reps`}
@@ -119,6 +125,7 @@ export default function WorkoutDetail() {
         );
       })}
 
+      <Button title="Compartilhar treino" variant="secondary" onPress={() => shareWorkout(w, exercises)} />
       {!w.routineId ? (
         <Button
           title={saved ? 'Rotina salva' : 'Salvar como rotina'}

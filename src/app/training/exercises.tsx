@@ -5,13 +5,14 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { ExerciseAnimation } from '../../components/ExerciseAnimation';
 import { Button, Card, Chips, colors, Field, Muted, styles, Title, useTheme } from '../../components/ui';
 import { Equipment, EQUIPMENT_LABEL, ExerciseKind, Muscle, MUSCLE_LABEL, searchExercises } from '../../domain/workout/exercises';
 import { useAllExercises, useAppStore } from '../../store/useAppStore';
 
 export default function ExerciseLibrary() {
   useTheme();
-  const params = useLocalSearchParams<{ pick?: 'active' | 'routine'; routine?: string }>();
+  const params = useLocalSearchParams<{ pick?: 'active' | 'routine' | 'replace'; routine?: string; index?: string }>();
   const all = useAllExercises();
   const updateActive = useAppStore((s) => s.updateActiveWorkout);
   const routines = useAppStore((s) => s.routines);
@@ -33,6 +34,11 @@ export default function ExerciseLibrary() {
   const choose = (id: string) => {
     if (params.pick === 'active') {
       updateActive((w) => ({ ...w, exercises: [...w.exercises, { exerciseId: id, restSec: 90, sets: [{ type: 'normal', done: false }, { type: 'normal', done: false }, { type: 'normal', done: false }] }] }));
+      router.back();
+    } else if (params.pick === 'replace') {
+      // Troca o exercício mantendo as séries, o descanso e a nota.
+      const i = Number(params.index);
+      updateActive((w) => ({ ...w, exercises: w.exercises.map((e, j) => (j === i ? { ...e, exerciseId: id } : e)) }));
       router.back();
     } else if (params.pick === 'routine' && params.routine && routines[params.routine]) {
       const r = routines[params.routine];
@@ -116,7 +122,7 @@ export default function ExerciseLibrary() {
 
   return (
     <View style={styles.screen}>
-      <Stack.Screen options={{ title: params.pick ? 'Adicionar exercício' : 'Exercícios' }} />
+      <Stack.Screen options={{ title: params.pick === 'replace' ? 'Substituir exercício' : params.pick ? 'Adicionar exercício' : 'Exercícios' }} />
       <FlatList
         data={list}
         keyExtractor={(e) => e.id}
@@ -125,12 +131,18 @@ export default function ExerciseLibrary() {
         keyboardShouldPersistTaps="handled"
         ListEmptyComponent={<Muted>Nenhum exercício encontrado.</Muted>}
         renderItem={({ item }) => (
-          <Pressable onPress={() => choose(item.id)} style={({ pressed }) => [styles.card, { paddingVertical: 12 }, pressed && { opacity: 0.7 }]}>
-            <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
-            <Text style={styles.muted}>
-              {MUSCLE_LABEL[item.primary]}
-              {item.secondary.length ? ` · ${item.secondary.map((m) => MUSCLE_LABEL[m]).join(', ')}` : ''} · {EQUIPMENT_LABEL[item.equipment]}
-            </Text>
+          <Pressable
+            onPress={() => choose(item.id)}
+            style={({ pressed }) => [styles.card, { paddingVertical: 10, flexDirection: 'row', alignItems: 'center', gap: 12 }, pressed && { opacity: 0.7 }]}
+          >
+            <ExerciseAnimation exerciseId={item.id} size={52} animate={false} round />
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: colors.text, fontWeight: '600' }}>{item.name}</Text>
+              <Text style={styles.muted}>
+                {MUSCLE_LABEL[item.primary]}
+                {item.secondary.length ? ` · ${item.secondary.map((m) => MUSCLE_LABEL[m]).join(', ')}` : ''} · {EQUIPMENT_LABEL[item.equipment]}
+              </Text>
+            </View>
           </Pressable>
         )}
       />
