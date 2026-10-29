@@ -17,6 +17,8 @@ export type WorkoutSet = {
   weightKg?: number;
   reps?: number;
   durationSec?: number;
+  /** Distância do cardio (km). */
+  distanceKm?: number;
   /** Esforço percebido, 6 a 10 (10 = falha). */
   rpe?: number;
   done: boolean;

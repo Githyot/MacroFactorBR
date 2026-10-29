@@ -56,6 +56,8 @@ export type Settings = {
   /** Visual do app (estilo de cada sistema) e modo claro/escuro. */
   themeId?: ThemeId;
   colorMode?: ColorMode;
+  /** O app tem dois modos: Dieta (diário, alimentos, progresso) e Treino (estilo Hevy). */
+  appMode?: 'dieta' | 'treino';
 };
 
 /** Dados que vão para o aparelho e para a nuvem. */
