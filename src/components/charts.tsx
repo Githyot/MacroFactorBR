@@ -2,7 +2,7 @@
 // funcionar igual no Android, iOS, web e desktop.
 
 import { ReactNode, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Platform, Text, View } from 'react-native';
 import Svg, { Circle, G, Line, Polygon, Polyline, Rect, Text as SvgText } from 'react-native-svg';
 
 import { colors } from './ui';
@@ -21,6 +21,8 @@ export function niceMax(v: number): number {
 }
 
 const AXIS_W = 44;
+// Na web o texto do SVG cai na fonte serifada se não for definido.
+const FONT = Platform.OS === 'web' ? 'system-ui, -apple-system, Segoe UI, Roboto, sans-serif' : undefined;
 
 function YAxis({ max, height, top, width, format }: { max: number; height: number; top: number; width: number; format: (v: number) => string }) {
   return (
@@ -30,7 +32,7 @@ function YAxis({ max, height, top, width, format }: { max: number; height: numbe
         return (
           <G key={f}>
             <Line x1={AXIS_W} x2={width} y1={y} y2={y} stroke={colors.border} strokeDasharray={f ? '3 4' : undefined} strokeWidth={1} />
-            <SvgText x={AXIS_W - 6} y={y + 4} fontSize={10} fill={colors.muted} textAnchor="end">
+            <SvgText fontFamily={FONT} x={AXIS_W - 6} y={y + 4} fontSize={10} fill={colors.muted} textAnchor="end">
               {format(max * f)}
             </SvgText>
           </G>
@@ -46,7 +48,7 @@ function XLabels({ labels, width, y, every }: { labels: string[]; width: number;
     <G>
       {labels.map((l, i) =>
         i % every === 0 ? (
-          <SvgText key={i} x={AXIS_W + step * i + step / 2} y={y} fontSize={10} fill={colors.muted} textAnchor="middle">
+          <SvgText fontFamily={FONT} key={i} x={AXIS_W + step * i + step / 2} y={y} fontSize={10} fill={colors.muted} textAnchor="middle">
             {l}
           </SvgText>
         ) : null,
@@ -61,6 +63,7 @@ export function BarChart({
   format,
   height = 170,
   highlight,
+  every,
 }: {
   values: number[];
   labels: string[];
@@ -68,6 +71,8 @@ export function BarChart({
   height?: number;
   /** Índice da barra destacada (as outras ficam mais claras). */
   highlight?: number;
+  /** Mostra 1 a cada N rótulos do eixo X (padrão: cerca de 6 rótulos). */
+  every?: number;
 }) {
   const [width, onLayout] = useWidth();
   const top = 8;
@@ -93,7 +98,7 @@ export function BarChart({
             />
           );
         })}
-        <XLabels labels={labels} width={width} y={height - 6} every={Math.ceil(labels.length / 6)} />
+        <XLabels labels={labels} width={width} y={height - 6} every={every ?? Math.ceil(labels.length / 6)} />
       </Svg>
     </View>
   );
@@ -166,7 +171,7 @@ export function RadarChart({ axes, current, previous, size = 260 }: { axes: stri
         {axes.map((label, i) => {
           const [lx, ly] = pt(i, 1.2);
           return (
-            <SvgText key={label} x={lx} y={ly + 4} fontSize={12} fill={colors.muted} textAnchor={Math.abs(lx - cx) < 8 ? 'middle' : lx < cx ? 'end' : 'start'}>
+            <SvgText fontFamily={FONT} key={label} x={lx} y={ly + 4} fontSize={12} fill={colors.muted} textAnchor={Math.abs(lx - cx) < 8 ? 'middle' : lx < cx ? 'end' : 'start'}>
               {label}
             </SvgText>
           );

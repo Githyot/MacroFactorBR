@@ -36,11 +36,11 @@ export default function CalendarScreen() {
         return (
           <View key={m} style={[styles.card, { gap: 8 }]}>
             <View style={styles.rowBetween}>
-              <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700', textTransform: 'capitalize' }}>
-                {monthName(m)} de {m.slice(0, 4)}
+              <Text style={{ color: colors.text, fontSize: 17, fontWeight: '700' }}>
+                {monthName(m).charAt(0).toUpperCase() + monthName(m).slice(1)} de {m.slice(0, 4)}
               </Text>
               <Text style={styles.muted}>
-                {n} {n === 1 ? 'treino' : 'treinos'}
+                {n} {n === 1 ? 'dia de treino' : 'dias de treino'}
               </Text>
             </View>
             <MonthCalendar month={m} days={days} today={today} />

@@ -85,7 +85,7 @@ export default function AthleteProfile() {
         <DashButton icon="barbell-outline" label="Exercícios" onPress={() => router.push('/training/exercises')} />
       </View>
       <View style={{ flexDirection: 'row', gap: 10 }}>
-        <DashButton icon="body-outline" label="Medidas" onPress={() => router.push('/progress')} />
+        <DashButton icon="body-outline" label="Medidas" onPress={() => router.push({ pathname: '/progress', params: { tab: 'medidas' } })} />
         <DashButton icon="calendar-outline" label="Calendário" onPress={() => router.push('/training/calendar')} />
       </View>
       <Button title={`Relatório de ${monthName(lastMonth)}`} variant="secondary" onPress={() => router.push({ pathname: '/training/report', params: { month: lastMonth } })} />

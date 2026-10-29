@@ -6,12 +6,14 @@ import { ComponentProps, ReactNode, useState } from 'react';
 import { Modal, Pressable, Share, Text, View } from 'react-native';
 
 import { Exercise } from '../domain/workout/exercises';
-import { fmtDuration, fmtNumber, PERIOD_LABEL, Period, relativeDay, Totals } from '../domain/workout/stats';
+import { fmtDuration, fmtNumber, PERIOD_LABEL, Period, relativeDay, Totals, workoutDistanceKm } from '../domain/workout/stats';
 import { completedSets, Workout, workoutDurationMin, workoutVolume } from '../domain/workout/training';
 import { ExerciseAnimation } from './ExerciseAnimation';
 import { colors, styles } from './ui';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
+
+const plural = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
 
 export type SheetOption = { label: string; icon: IconName; onPress: () => void; danger?: boolean; selected?: boolean };
 
@@ -177,6 +179,8 @@ export function WorkoutCard({
 }) {
   const done = w.exercises.filter((e) => e.sets.some((s) => s.done));
   const shown = done.slice(0, 3);
+  const volume = workoutVolume(w);
+  const km = workoutDistanceKm(w);
   return (
     <View style={styles.card}>
       <Pressable onPress={() => router.push({ pathname: '/training/[id]', params: { id: w.id } })}>
@@ -195,10 +199,18 @@ export function WorkoutCard({
             <Text style={[styles.muted, { fontSize: 12 }]}>Tempo</Text>
             <Text style={{ color: colors.text, fontSize: 16 }}>{fmtDuration(workoutDurationMin(w))}</Text>
           </View>
-          <View>
-            <Text style={[styles.muted, { fontSize: 12 }]}>Volume</Text>
-            <Text style={{ color: colors.text, fontSize: 16 }}>{fmtNumber(Math.round(workoutVolume(w)))} kg</Text>
-          </View>
+          {volume > 0 || km === 0 ? (
+            <View>
+              <Text style={[styles.muted, { fontSize: 12 }]}>Volume</Text>
+              <Text style={{ color: colors.text, fontSize: 16 }}>{fmtNumber(Math.round(volume))} kg</Text>
+            </View>
+          ) : null}
+          {km > 0 ? (
+            <View>
+              <Text style={[styles.muted, { fontSize: 12 }]}>Distância</Text>
+              <Text style={{ color: colors.text, fontSize: 16 }}>{fmtNumber(km, 2)} km</Text>
+            </View>
+          ) : null}
           {records > 0 ? (
             <View>
               <Text style={[styles.muted, { fontSize: 12 }]}>Recordes</Text>
@@ -210,7 +222,7 @@ export function WorkoutCard({
           <View key={`${e.exerciseId}-${i}`} style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingTop: 10 }}>
             <ExerciseAnimation exerciseId={e.exerciseId} size={40} animate={false} round />
             <Text style={{ color: colors.text, fontSize: 15, flex: 1 }}>
-              {e.sets.filter((s) => s.done).length} séries · {exercises[e.exerciseId]?.name ?? 'Exercício'}
+              {plural(e.sets.filter((s) => s.done).length, 'série', 'séries')} · {exercises[e.exerciseId]?.name ?? 'Exercício'}
             </Text>
           </View>
         ))}

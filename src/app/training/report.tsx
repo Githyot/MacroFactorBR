@@ -82,7 +82,7 @@ export default function MonthlyReportScreen() {
           {r.totals.workouts} {r.totals.workouts === 1 ? 'treino' : 'treinos'}{' '}
           {delta ? <Text style={{ color: delta > 0 ? colors.primary : colors.muted }}>{delta > 0 ? `↑ ${delta}` : `↓ ${-delta}`}</Text> : null}
         </Text>
-        <BarChart values={r.history.map((h) => metricValue(h.totals, metric))} labels={r.history.map((h) => monthName(h.month, true).slice(0, 1).toUpperCase())} format={format} highlight={11} />
+        <BarChart values={r.history.map((h) => metricValue(h.totals, metric))} labels={r.history.map((h) => monthName(h.month, true).slice(0, 1).toUpperCase())} format={format} highlight={11} every={1} />
         <Pills
           options={[
             { value: 'workouts', label: 'Treinos' },
@@ -165,8 +165,10 @@ export default function MonthlyReportScreen() {
           </View>
         ) : null}
       </ScrollView>
-      <View style={{ position: 'absolute', left: 16, right: 16, bottom: 16, maxWidth: 688, alignSelf: 'center', width: '100%' }}>
-        <Button title="Compartilhar" onPress={share} />
+      <View style={{ position: 'absolute', left: 0, right: 0, bottom: 16, paddingHorizontal: 16 }}>
+        <View style={{ maxWidth: 688, width: '100%', alignSelf: 'center' }}>
+          <Button title="Compartilhar" onPress={share} />
+        </View>
       </View>
     </View>
   );
