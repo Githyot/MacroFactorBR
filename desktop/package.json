@@ -1,0 +1,46 @@
+{
+  "name": "macrofactorbr",
+  "productName": "MacroFactorBR",
+  "version": "1.0.0",
+  "description": "App de dieta para musculação, treino e suplementação",
+  "homepage": "https://github.com/Githyot/MacroFactorBR",
+  "author": {
+    "name": "MacroFactorBR",
+    "email": "contato@macrofactor.br"
+  },
+  "license": "UNLICENSED",
+  "main": "main.js",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --linux --publish never"
+  },
+  "devDependencies": {
+    "electron": "45.1.0",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "br.macrofactor.app",
+    "productName": "MacroFactorBR",
+    "files": [
+      "main.js",
+      "web/**/*"
+    ],
+    "directories": {
+      "output": "release"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb",
+        "rpm"
+      ],
+      "category": "Utility",
+      "icon": "icon.png",
+      "maintainer": "MacroFactorBR",
+      "synopsis": "Dieta, treino e suplementação para musculação",
+      "artifactName": "MacroFactorBR-${version}-${arch}.${ext}"
+    },
+    "publish": null
+  }
+}

@@ -53,6 +53,22 @@ Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/
 - LGPD: consentimento, exportar tudo e excluir conta.
 - Plano Pro (R$ 14,90/mês ou R$ 99/ano) por RevenueCat. Enquanto `EXPO_PUBLIC_PAYWALL_ENABLED` não for `true`, tudo fica liberado.
 
+## Instalando
+
+Cada [release](https://github.com/Githyot/MacroFactorBR/releases) traz os instaladores, gerados pelo GitHub Actions (fluxo "Instaladores"):
+
+| Sistema | Arquivo | Como instalar |
+| --- | --- | --- |
+| Android | `MacroFactorBR-<versão>-android.apk` | Abra o arquivo no celular e permita instalar de fontes desconhecidas. |
+| Fedora, openSUSE, RHEL | `MacroFactorBR-<versão>-x86_64.rpm` | `sudo dnf install ./MacroFactorBR-*.rpm` |
+| Ubuntu, Debian, Mint | `MacroFactorBR-<versão>-amd64.deb` | `sudo apt install ./MacroFactorBR-*.deb` |
+| Qualquer Linux | `MacroFactorBR-<versão>-x86_64.AppImage` | `chmod +x MacroFactorBR-*.AppImage` e abra. |
+| Web | `MacroFactorBR-<versão>-web.zip` | Publique a pasta em qualquer hospedagem de sites estáticos. |
+
+O app de Linux é a versão web numa janela própria (Electron, pasta `desktop/`). Código de barras pela câmera e Health Connect/Apple Saúde só existem no celular, e o ditado por voz não funciona no app de desktop.
+
+O APK é assinado com a chave de desenvolvimento: serve para instalar direto, mas para a Play Store é preciso gerar com a sua chave (EAS ou keystore própria).
+
 ## Rodando
 
 ```bash
