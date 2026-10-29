@@ -53,6 +53,7 @@ export default function TabsLayout() {
     >
       <Tabs.Screen name="index" options={{ title: 'Hoje', tabBarIcon: icon('today-outline'), ...only(diet) }} />
       <Tabs.Screen name="foods" options={{ title: 'Alimentos', tabBarIcon: icon('nutrition-outline'), ...only(diet) }} />
+      <Tabs.Screen name="plano" options={{ title: 'Plano', tabBarIcon: icon('calendar-outline'), ...only(diet) }} />
       <Tabs.Screen name="progress" options={{ title: 'Progresso', tabBarIcon: icon('trending-up-outline'), ...only(diet) }} />
       <Tabs.Screen name="profile" options={{ title: diet ? 'Perfil' : 'Configurações', tabBarIcon: icon('person-outline'), ...only(diet) }} />
       <Tabs.Screen name="home" options={{ title: 'Início', tabBarIcon: icon('home-outline'), ...only(!diet) }} />

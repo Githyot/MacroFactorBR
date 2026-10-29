@@ -2,6 +2,9 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import Ionicons from '@expo/vector-icons/Ionicons';
+
+import { ActionTile, ListCard, ListRow } from '../../components/diet';
 import { Badge, Button, Card, colors, LinkText, Muted, styles, useTheme } from '../../components/ui';
 import { Food, Meal, MEALS, recentFoodIds, searchFoods, todayIso } from '../../domain/foods';
 import { decodeRecipe } from '../../domain/recipes';
@@ -20,13 +23,13 @@ const SOURCE_LABEL: Record<Food['source'], string> = {
 type Segment = 'all' | 'favorites' | 'recent' | 'recipes' | 'supplements' | 'dishes' | 'meals';
 
 const SEGMENTS: { value: Segment; label: string }[] = [
-  { value: 'all', label: 'Todos' },
-  { value: 'favorites', label: 'Favoritos' },
   { value: 'recent', label: 'Recentes' },
+  { value: 'favorites', label: 'Favoritos' },
+  { value: 'meals', label: 'Refeições' },
   { value: 'recipes', label: 'Receitas' },
+  { value: 'all', label: 'Todos' },
   { value: 'supplements', label: 'Suplementos' },
   { value: 'dishes', label: 'Pratos típicos' },
-  { value: 'meals', label: 'Refeições salvas' },
 ];
 
 export default function FoodsScreen() {
@@ -43,14 +46,16 @@ export default function FoodsScreen() {
   const saveRecipe = useAppStore((s) => s.saveRecipe);
   const addFood = useAppStore((s) => s.addFood);
   const [query, setQuery] = useState('');
-  const [segment, setSegment] = useState<Segment>('all');
+  // Quem já registrou algo começa pelos recentes; quem está começando, pela base toda.
+  const [segment, setSegment] = useState<Segment>(() => (useAppStore.getState().entries.length ? 'recent' : 'all'));
   const [importCode, setImportCode] = useState('');
   const [importMsg, setImportMsg] = useState<string | null>(null);
 
   const list = useMemo(() => {
     let base = Object.values(foods).filter((f) => !f.archived);
     if (segment === 'favorites') base = favorites.map((id) => foods[id]).filter(Boolean);
-    if (segment === 'recent') base = recentFoodIds(entries, meal, 30).map((id) => foods[id]).filter(Boolean);
+    // Digitar a partir de Recentes busca na base toda.
+    if (segment === 'recent' && !query) base = recentFoodIds(entries, meal, 30).map((id) => foods[id]).filter(Boolean);
     if (segment === 'recipes') base = base.filter((f) => f.kind === 'recipe');
     if (segment === 'supplements') base = base.filter((f) => f.kind === 'supplement');
     if (segment === 'dishes') base = base.filter((f) => f.kind === 'dish');
@@ -80,9 +85,21 @@ export default function FoodsScreen() {
     router.push({ pathname: '/recipe/[id]', params: { id: recipe.id } });
   };
 
+  const mealLabel = MEALS.find((x) => x.key === meal)?.label;
+  const ctx = { ...(meal ? { meal } : {}), date };
   const header = (
-    <View style={{ gap: 12 }}>
-      <View style={styles.inputRow}>
+    <View style={{ gap: 12, marginBottom: 12 }}>
+      {mealLabel ? (
+        <View style={[styles.soft, { flexDirection: 'row', alignItems: 'center', gap: 8, padding: 10 }]}>
+          <Ionicons name="restaurant-outline" size={16} color={colors.primary} />
+          <Text style={{ color: colors.text, fontWeight: '600' }}>
+            Adicionando em {mealLabel}
+            <Text style={{ color: colors.muted, fontWeight: '400' }}> · {date === todayIso() ? 'hoje' : date.split('-').reverse().slice(0, 2).join('/')}</Text>
+          </Text>
+        </View>
+      ) : null}
+      <View style={[styles.inputRow, { paddingLeft: 12 }]}>
+        <Ionicons name="search" size={18} color={colors.muted} />
         <TextInput
           value={query}
           onChangeText={setQuery}
@@ -91,18 +108,16 @@ export default function FoodsScreen() {
           style={styles.input}
           autoCorrect={false}
         />
+        {query ? (
+          <Pressable accessibilityLabel="Limpar busca" onPress={() => setQuery('')} hitSlop={8} style={{ paddingRight: 12 }}>
+            <Ionicons name="close-circle" size={18} color={colors.muted} />
+          </Pressable>
+        ) : null}
       </View>
-      <View style={styles.row}>
-        <View style={{ flex: 1, minWidth: 120 }}>
-          <Button title="Escanear código" onPress={() => router.push({ pathname: '/scan', params: { ...(meal ? { meal } : {}), date } })} />
-        </View>
-        <View style={{ flex: 1, minWidth: 120 }}>
-          <Button
-            title="Foto da tabela"
-            variant="secondary"
-            onPress={() => router.push({ pathname: '/food/new', params: { ocr: '1', ...(meal ? { meal } : {}), date } })}
-          />
-        </View>
+      <View style={{ flexDirection: 'row', gap: 8 }}>
+        <ActionTile icon="barcode-outline" label="Código" onPress={() => router.push({ pathname: '/scan', params: ctx })} />
+        <ActionTile icon="document-text-outline" label="Foto da tabela" onPress={() => router.push({ pathname: '/food/new', params: { ocr: '1', ...ctx } })} />
+        <ActionTile icon="create-outline" label="Manual" onPress={() => router.push({ pathname: '/food/new', params: ctx })} />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
         {SEGMENTS.map((s) => (
@@ -119,7 +134,8 @@ export default function FoodsScreen() {
       {segment === 'recipes' ? (
         <Card>
           <Button title="Nova receita ou marmita" onPress={() => router.push({ pathname: '/recipe/[id]', params: { id: 'new' } })} />
-          <View style={[styles.inputRow, { marginTop: 12 }]}>
+          <Muted style={{ marginTop: 12, marginBottom: 6, fontSize: 13 }}>Recebeu uma receita de alguém? Cole o código:</Muted>
+          <View style={styles.inputRow}>
             <TextInput
               value={importCode}
               onChangeText={setImportCode}
@@ -146,28 +162,37 @@ export default function FoodsScreen() {
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         {header}
         {savedMeals.length === 0 ? (
-          <Muted>Nenhuma refeição salva. Na tela Hoje, toque em “Salvar refeição” embaixo de uma refeição registrada.</Muted>
+          <Muted>Nenhuma refeição salva. No Hoje, toque em ⋯ numa refeição registrada e escolha “Salvar como refeição”.</Muted>
         ) : (
-          savedMeals.map((m) => {
-            const target = meal ?? MEALS[0].key;
-            return (
-              <Card key={m.id}>
-                <Text style={{ fontWeight: '700', color: colors.text, marginBottom: 4 }}>{m.name}</Text>
-                <Muted style={{ marginBottom: 8 }}>{m.items.map((i) => foods[i.foodId]?.name ?? '?').join(', ')}</Muted>
-                <View style={styles.rowBetween}>
-                  <LinkText
-                    onPress={() => {
-                      addEntries(m.items.map((i) => ({ ...i, date, meal: target })));
-                      router.navigate('/');
-                    }}
-                  >
-                    Adicionar em {MEALS.find((x) => x.key === target)?.label}
-                  </LinkText>
-                  <LinkText onPress={() => deleteSavedMeal(m.id)}>Excluir</LinkText>
-                </View>
-              </Card>
-            );
-          })
+          <ListCard>
+            {savedMeals.map((m, i) => {
+              const target = meal ?? MEALS[0].key;
+              return (
+                <ListRow
+                  key={m.id}
+                  first={i === 0}
+                  icon="bookmark-outline"
+                  title={m.name}
+                  subtitle={m.items.map((x) => foods[x.foodId]?.name ?? '?').join(', ')}
+                  right={
+                    <View style={{ alignItems: 'flex-end', gap: 6 }}>
+                      <LinkText
+                        onPress={() => {
+                          addEntries(m.items.map((x) => ({ ...x, date, meal: target })));
+                          router.navigate('/');
+                        }}
+                      >
+                        + {MEALS.find((x) => x.key === target)?.label}
+                      </LinkText>
+                      <Pressable onPress={() => deleteSavedMeal(m.id)} hitSlop={6}>
+                        <Text style={{ color: colors.muted, fontSize: 13 }}>Excluir</Text>
+                      </Pressable>
+                    </View>
+                  }
+                />
+              );
+            })}
+          </ListCard>
         )}
       </ScrollView>
     );
@@ -179,7 +204,7 @@ export default function FoodsScreen() {
         data={list}
         keyExtractor={(f) => f.id}
         ListHeaderComponent={header}
-        contentContainerStyle={[styles.content, { gap: 8 }]}
+        contentContainerStyle={[styles.content, { gap: 0 }]}
         initialNumToRender={20}
         ListEmptyComponent={
           <View style={{ gap: 12 }}>
@@ -188,37 +213,51 @@ export default function FoodsScreen() {
                 ? 'Nenhum favorito ainda. Toque na estrela ao abrir um alimento.'
                 : segment === 'recent'
                   ? 'Você ainda não registrou nada.'
-                  : 'Nenhum alimento encontrado.'}
+                  : `Nenhum alimento encontrado${query ? ` para “${query}”` : ''}.`}
             </Muted>
-            {segment === 'all' ? <Button title="Cadastrar manualmente" variant="secondary" onPress={() => router.push('/food/new')} /> : null}
+            {segment === 'all' || query ? <Button title="Cadastrar manualmente" variant="secondary" onPress={() => router.push({ pathname: '/food/new', params: ctx })} /> : null}
           </View>
         }
-        renderItem={({ item }) => (
+        renderItem={({ item, index }) => (
           <Pressable
             onPress={() =>
               item.kind === 'recipe' && segment === 'recipes'
                 ? router.push({ pathname: '/recipe/[id]', params: { id: item.id.replace(/^recipe-/, '') } })
-                : router.push({ pathname: '/food/[id]', params: { id: item.id, ...(meal ? { meal } : {}), date } })
+                : router.push({ pathname: '/food/[id]', params: { id: item.id, ...ctx } })
             }
-            style={({ pressed }) => [styles.card, { paddingVertical: 12 }, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [
+              styles.card,
+              {
+                paddingVertical: 11,
+                borderRadius: 0,
+                borderTopWidth: index ? 1 : 0,
+                borderTopColor: colors.border,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+              },
+              index === 0 && { borderTopLeftRadius: styles.card.borderRadius, borderTopRightRadius: styles.card.borderRadius },
+              index === list.length - 1 && { borderBottomLeftRadius: styles.card.borderRadius, borderBottomRightRadius: styles.card.borderRadius },
+              pressed && { opacity: 0.7 },
+            ]}
           >
-            <View style={styles.rowBetween}>
-              <Text style={{ flex: 1, fontWeight: '600', color: colors.text }}>
-                {favorites.includes(item.id) ? '★ ' : ''}
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontWeight: '600', color: colors.text, fontSize: 15 }} numberOfLines={2}>
+                {favorites.includes(item.id) ? <Text style={{ color: colors.carbs }}>★ </Text> : null}
                 {item.name}
                 {item.brand ? <Text style={{ color: colors.muted, fontWeight: '400' }}> · {item.brand}</Text> : null}
               </Text>
-              <Text style={{ fontSize: 12, color: colors.muted }}>{SOURCE_LABEL[item.source]}</Text>
+              <Text style={[styles.macroValue, { fontSize: 13, marginTop: 2 }]}>
+                {Math.round(item.per100g.kcal ?? 0)} kcal · P {item.per100g.protein ?? 0} · C {item.per100g.carbs ?? 0} · G {item.per100g.fat ?? 0}
+                <Text style={{ fontSize: 12 }}> /100 g · {SOURCE_LABEL[item.source]}</Text>
+              </Text>
+              {item.highIn?.length ? (
+                <View style={{ marginTop: 4 }}>
+                  <Badge text={`Alto em ${item.highIn.length} item(ns)`} tone="warn" />
+                </View>
+              ) : null}
             </View>
-            <Text style={styles.macroValue}>
-              100 g: {Math.round(item.per100g.kcal ?? 0)} kcal · P {item.per100g.protein ?? 0} g · C {item.per100g.carbs ?? 0} g · G{' '}
-              {item.per100g.fat ?? 0} g
-            </Text>
-            {item.highIn?.length ? (
-              <View style={[styles.row, { gap: 6, marginTop: 6 }]}>
-                <Badge text={`Alto em ${item.highIn.length} item(ns)`} tone="warn" />
-              </View>
-            ) : null}
+            <Ionicons name="add-circle" size={26} color={colors.primary} />
           </Pressable>
         )}
       />
