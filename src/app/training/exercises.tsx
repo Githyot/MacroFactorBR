@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react';
 import { FlatList, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
 import { ExerciseAnimation } from '../../components/ExerciseAnimation';
+import { InfoButton } from '../../components/HowTo';
 import { Button, Card, Chips, colors, Field, Muted, styles, Title, useTheme } from '../../components/ui';
 import { Equipment, EQUIPMENT_LABEL, ExerciseKind, Muscle, MUSCLE_LABEL, searchExercises } from '../../domain/workout/exercises';
 import { useAllExercises, useAppStore } from '../../store/useAppStore';
@@ -143,6 +144,7 @@ export default function ExerciseLibrary() {
                 {item.secondary.length ? ` · ${item.secondary.map((m) => MUSCLE_LABEL[m]).join(', ')}` : ''} · {EQUIPMENT_LABEL[item.equipment]}
               </Text>
             </View>
+            <InfoButton ex={item} size={24} />
           </Pressable>
         )}
       />

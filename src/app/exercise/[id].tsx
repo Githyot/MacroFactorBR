@@ -4,6 +4,7 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { LineChart } from '../../components/charts';
 import { ExerciseAnimation } from '../../components/ExerciseAnimation';
+import { HowToList } from '../../components/HowTo';
 import { Pills } from '../../components/training';
 import { Card, colors, Field, Muted, parseInput, styles, Title, useTheme } from '../../components/ui';
 import { MEDIA_CREDIT } from '../../domain/workout/media';
@@ -69,6 +70,11 @@ export default function ExerciseDetail() {
           {ex.secondary.length ? ` (auxiliares: ${ex.secondary.map((m) => MUSCLE_LABEL[m]).join(', ')})` : ''} · {EQUIPMENT_LABEL[ex.equipment]}
         </Muted>
         {suggestion ? <Text style={{ color: colors.primary, marginTop: 8 }}>💡 Próximo treino: {suggestion.reason}</Text> : null}
+      </Card>
+
+      <Card>
+        <Title>Como executar</Title>
+        <HowToList ex={ex} />
       </Card>
 
       {ex.kind === 'weight_reps' ? (

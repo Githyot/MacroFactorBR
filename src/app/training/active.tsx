@@ -8,6 +8,7 @@ import { Modal, Pressable, ScrollView, Text, TextInput, Vibration, View } from '
 
 import { BodyMap } from '../../components/BodyMap';
 import { ExerciseAnimation } from '../../components/ExerciseAnimation';
+import { InfoButton } from '../../components/HowTo';
 import { ActionSheet, SheetOption } from '../../components/training';
 import { Button, Card, colors, LinkText, Muted, parseInput, styles, useTheme } from '../../components/ui';
 import { Exercise } from '../../domain/workout/exercises';
@@ -116,6 +117,7 @@ function ExerciseBlock({
           <ExerciseAnimation exerciseId={ex.id} size={44} animate={false} round />
           <Text style={{ flex: 1, color: colors.primary, fontSize: 17, fontWeight: '700' }}>{ex.name}</Text>
         </Pressable>
+        <InfoButton ex={ex} />
         <Pressable onPress={onMenu} hitSlop={10} accessibilityLabel={`Opções de ${ex.name}`}>
           <Ionicons name="ellipsis-vertical" size={20} color={colors.text} />
         </Pressable>
