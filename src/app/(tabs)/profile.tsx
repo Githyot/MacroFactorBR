@@ -200,8 +200,6 @@ export default function ProfileScreen() {
 
       {profile ? (
         <Card>
-          <NavRow href="/checkin" title="Check-in semanal" subtitle="Ajuste das metas pelo seu ritmo real" />
-          <NavRow href="/supplements" title="Suplementação" subtitle="Suplementos, vitaminas e remédios; proteína da comida × do pó" />
           <NavRow href="/account" title="Conta e dados" subtitle={hasBackend ? 'Login, sincronização, Saúde, exportar e apagar' : 'Exportar e apagar dados, Saúde'} />
           <NavRow href="/pro" title="MacroFactorBR Pro" subtitle="Recursos avançados" />
         </Card>

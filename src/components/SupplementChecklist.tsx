@@ -7,7 +7,7 @@ import { useAppStore } from '../store/useAppStore';
 import { Button, colors, LinkText, Muted, styles, Title } from './ui';
 
 /** Doses do dia para marcar, na tela Hoje. */
-export function SupplementChecklist({ date, warnings }: { date: string; warnings: UpperLimitWarning[] }) {
+export function SupplementChecklist({ date, warnings, compact }: { date: string; warnings: UpperLimitWarning[]; compact?: boolean }) {
   const supplements = useAppStore((s) => s.supplements);
   const taken = useAppStore((s) => s.supplementLog[date]);
   const setTaken = useAppStore((s) => s.setSupplementTaken);
@@ -20,10 +20,14 @@ export function SupplementChecklist({ date, warnings }: { date: string; warnings
 
   return (
     <View>
-      <View style={styles.rowBetween}>
-        <Title>Suplementação</Title>
-        {total > 0 ? <Text style={styles.macroValue}>{done}/{total} doses</Text> : null}
-      </View>
+      {compact ? (
+        total > 0 ? <Text style={[styles.macroValue, { marginBottom: 4 }]}>{done}/{total} doses marcadas</Text> : null
+      ) : (
+        <View style={styles.rowBetween}>
+          <Title>Suplementação</Title>
+          {total > 0 ? <Text style={styles.macroValue}>{done}/{total} doses</Text> : null}
+        </View>
+      )}
       {Object.keys(supplements).length === 0 ? (
         <>
           <Muted style={{ marginBottom: 10 }}>Monte seu protocolo de suplementos, vitaminas e remédios para marcar as doses de cada dia.</Muted>
@@ -83,7 +87,7 @@ export function SupplementChecklist({ date, warnings }: { date: string; warnings
           </View>
         );
       })}
-      {Object.keys(supplements).length > 0 ? (
+      {Object.keys(supplements).length > 0 && !compact ? (
         <View style={{ marginTop: 8 }}>
           <LinkText onPress={() => router.push('/supplements')}>Gerenciar suplementação ›</LinkText>
         </View>
