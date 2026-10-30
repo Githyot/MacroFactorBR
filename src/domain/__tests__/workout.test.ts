@@ -4,11 +4,13 @@ import { PROGRAMS } from '../workout/programs';
 import {
   detectNewRecords,
   estimate1RM,
+  moveExercise,
   personalRecords,
   platesPerSide,
   previousSets,
   setsPerMuscle,
   suggestNext,
+  toggleSuperset,
   weekStreak,
   Workout,
   workoutFromRoutine,
@@ -111,5 +113,33 @@ describe('biblioteca ampliada', () => {
     expect(hammer.every((e) => e.equipment === 'articulada')).toBe(true);
     expect(searchExercises(EXERCISES, 'hammer supino')[0].equipment).toBe('articulada');
     expect(searchExercises(EXERCISES, 'pendulo').map((e) => e.id)).toContain('agachamento-pendulo');
+  });
+});
+
+describe('reordenar e superset no treino', () => {
+  const base: Workout = {
+    id: 'x',
+    name: 'T',
+    startedAt: '2026-10-29T10:00:00.000Z',
+    exercises: ['a', 'b', 'c'].map((exerciseId) => ({ exerciseId, restSec: 90, sets: [] })),
+  };
+
+  it('move exercícios sem sair dos limites', () => {
+    expect(moveExercise(base, 1, -1).exercises.map((e) => e.exerciseId)).toEqual(['b', 'a', 'c']);
+    expect(moveExercise(base, 2, 1)).toBe(base);
+  });
+
+  it('liga ao próximo e desfaz o par inteiro', () => {
+    const linked = toggleSuperset(base, 0);
+    expect(linked.exercises[0].supersetId).toBeDefined();
+    expect(linked.exercises[1].supersetId).toBe(linked.exercises[0].supersetId);
+    expect(linked.exercises[2].supersetId).toBeUndefined();
+    const undone = toggleSuperset(linked, 1);
+    expect(undone.exercises.every((e) => !e.supersetId)).toBe(true);
+  });
+
+  it('último exercício liga com o anterior', () => {
+    const linked = toggleSuperset(base, 2);
+    expect(linked.exercises[1].supersetId).toBe(linked.exercises[2].supersetId);
   });
 });

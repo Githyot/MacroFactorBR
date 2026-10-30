@@ -1,17 +1,24 @@
 // Treino ao vivo: séries com carga e repetições, coluna "Anterior", timer de descanso,
 // sugestão de progressão e recordes ao terminar.
 
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { router, Stack } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, Text, TextInput, Vibration, View } from 'react-native';
 
+import { BodyMap } from '../../components/BodyMap';
+import { ExerciseAnimation } from '../../components/ExerciseAnimation';
+import { ActionSheet, SheetOption } from '../../components/training';
 import { Button, Card, colors, LinkText, Muted, parseInput, styles, useTheme } from '../../components/ui';
 import { Exercise } from '../../domain/workout/exercises';
 import {
   completedSets,
   previousSets,
+  setsPerMuscle,
   SetType,
   suggestNext,
+  moveExercise,
+  toggleSuperset,
   WorkoutExercise,
   WorkoutSet,
   workoutVolume,
@@ -24,6 +31,8 @@ const TYPE_TAG: Record<SetType, string> = { normal: '', warmup: 'A', failure: 'F
 
 const mmss = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.max(0, Math.floor(sec % 60))).padStart(2, '0')}`;
 const num = (n?: number) => (n === undefined ? '' : String(n).replace('.', ','));
+const SUPERSET_COLORS = ['#8b5cf6', '#f59e0b', '#06b6d4', '#ec4899', '#22c55e'];
+
 
 function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
@@ -74,8 +83,9 @@ function ExerciseBlock({
   index,
   prev,
   showRpe,
+  supersetColor,
   onChange,
-  onRemove,
+  onMenu,
   onDone,
 }: {
   ex: Exercise;
@@ -83,44 +93,74 @@ function ExerciseBlock({
   index: number;
   prev: WorkoutSet[];
   showRpe: boolean;
+  supersetColor?: string;
   onChange: (fn: (e: WorkoutExercise) => WorkoutExercise) => void;
-  onRemove: () => void;
+  onMenu: () => void;
   onDone: (restSec: number) => void;
 }) {
   const suggestion = ex.kind === 'weight_reps' ? suggestNext(ex, prev, item.repRange) : undefined;
   const isDuration = ex.kind === 'duration';
   const usesWeight = ex.kind === 'weight_reps';
+  // Cardio com tempo também registra a distância (km), como no Hevy.
+  const usesKm = isDuration && ex.primary === 'cardio';
+  const [noteOpen, setNoteOpen] = useState(Boolean(item.notes));
   let normalCount = 0;
 
   const setAt = (i: number, patch: Partial<WorkoutSet>) => onChange((e) => ({ ...e, sets: e.sets.map((s, j) => (j === i ? { ...s, ...patch } : s)) }));
 
   return (
-    <Card>
-      <View style={styles.rowBetween}>
-        <Pressable style={{ flex: 1 }} onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: ex.id } })}>
-          <Text style={{ color: colors.primary, fontSize: 16, fontWeight: '700' }}>{ex.name}</Text>
+    <Card style={supersetColor ? { borderLeftWidth: 4, borderLeftColor: supersetColor } : undefined}>
+      {supersetColor ? <Text style={{ color: supersetColor, fontWeight: '700', fontSize: 12, marginBottom: 4 }}>SUPERSET</Text> : null}
+      <View style={[styles.rowBetween, { gap: 10, marginBottom: 8 }]}>
+        <Pressable style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: ex.id } })}>
+          <ExerciseAnimation exerciseId={ex.id} size={44} animate={false} round />
+          <Text style={{ flex: 1, color: colors.primary, fontSize: 17, fontWeight: '700' }}>{ex.name}</Text>
         </Pressable>
-        <LinkText onPress={onRemove}>Remover</LinkText>
+        <Pressable onPress={onMenu} hitSlop={10} accessibilityLabel={`Opções de ${ex.name}`}>
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.text} />
+        </Pressable>
       </View>
-      <View style={[styles.row, { marginBottom: 6 }]}>
+      <View style={[styles.row, { marginBottom: 8, gap: 8 }]}>
         <Pressable
           onPress={() => onChange((e) => ({ ...e, restSec: REST_OPTIONS[(REST_OPTIONS.indexOf(e.restSec) + 1) % REST_OPTIONS.length] ?? 90 }))}
-          hitSlop={6}
+          style={[styles.soft, { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 10 }]}
+          accessibilityLabel="Mudar o tempo de descanso"
         >
-          <Text style={styles.muted}>⏱ Descanso: {item.restSec ? mmss(item.restSec) : 'desligado'}</Text>
+          <Ionicons name="timer-outline" size={16} color={colors.text} />
+          <Text style={{ color: colors.text }}>Descanso: {item.restSec ? mmss(item.restSec) : 'desligado'}</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setNoteOpen(!noteOpen)}
+          style={[styles.soft, { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7, paddingHorizontal: 10 }]}
+        >
+          <Ionicons name="document-text-outline" size={16} color={colors.text} />
+          <Text style={{ color: colors.text }}>Nota</Text>
         </Pressable>
         {item.repRange ? (
-          <Text style={styles.muted}>
+          <Text style={[styles.muted, { alignSelf: 'center' }]}>
             Alvo: {item.repRange[0]}–{item.repRange[1]} reps
           </Text>
         ) : null}
       </View>
+      {noteOpen ? (
+        <View style={[styles.inputRow, { marginBottom: 8 }]}>
+          <TextInput
+            value={item.notes ?? ''}
+            onChangeText={(notes) => onChange((e) => ({ ...e, notes: notes || undefined }))}
+            placeholder="Nota do exercício (ajuste do banco, pegada…)"
+            placeholderTextColor={colors.muted}
+            multiline
+            style={[styles.input, { fontSize: 14 }]}
+          />
+        </View>
+      ) : null}
       {suggestion ? <Muted style={{ marginBottom: 8, color: colors.primary }}>💡 {suggestion.reason}</Muted> : null}
 
       <View style={[styles.rowBetween, { marginBottom: 4 }]}>
         <Text style={[styles.fieldLabel, { width: 40 }]}>SÉRIE</Text>
         <Text style={[styles.fieldLabel, { flex: 1 }]}>ANTERIOR</Text>
         {usesWeight ? <Text style={[styles.fieldLabel, { width: 64, textAlign: 'center' }]}>KG</Text> : null}
+        {usesKm ? <Text style={[styles.fieldLabel, { width: 64, textAlign: 'center' }]}>KM</Text> : null}
         <Text style={[styles.fieldLabel, { width: 64, textAlign: 'center' }]}>{isDuration ? 'MIN' : 'REPS'}</Text>
         {showRpe ? <Text style={[styles.fieldLabel, { width: 44, textAlign: 'center' }]}>RPE</Text> : null}
         <View style={{ width: 40 }} />
@@ -133,7 +173,7 @@ function ExerciseBlock({
         const above = item.sets.slice(0, i).reverse().find((x) => x.type === s.type && (x.weightKg !== undefined || x.reps !== undefined));
         const hintKg = suggestion?.weightKg ?? p?.weightKg ?? above?.weightKg;
         const hintReps = s.type === 'warmup' ? (above?.reps ?? 10) : (suggestion?.reps ?? p?.reps ?? above?.reps ?? item.repRange?.[0] ?? 10);
-        const prevText = p ? (isDuration ? `${Math.round((p.durationSec ?? 0) / 60)} min` : usesWeight ? `${num(p.weightKg)} kg × ${p.reps}` : `${p.reps} reps`) : '–';
+        const prevText = p ? (isDuration ? `${p.distanceKm ? `${num(p.distanceKm)} km em ` : ''}${Math.round((p.durationSec ?? 0) / 60)} min` : usesWeight ? `${num(p.weightKg)} kg × ${p.reps}` : `${p.reps} reps`) : '–';
         return (
           <View
             key={i}
@@ -153,6 +193,7 @@ function ExerciseBlock({
             {usesWeight ? (
               <NumInput value={s.weightKg} placeholder={num(hintKg) || '0'} onChange={(v) => setAt(i, { weightKg: v })} />
             ) : null}
+            {usesKm ? <NumInput value={s.distanceKm} placeholder={num(p?.distanceKm) || '0'} onChange={(v) => setAt(i, { distanceKm: v })} /> : null}
             {isDuration ? (
               <NumInput
                 value={s.durationSec !== undefined ? Math.round(s.durationSec / 6) / 10 : undefined}
@@ -223,6 +264,11 @@ export default function ActiveWorkoutScreen() {
   const [restEndsAt, setRestEndsAt] = useState<number | null>(null);
   const [showRpe, setShowRpe] = useState(false);
   const [confirm, setConfirm] = useState<'discard' | 'finish' | null>(null);
+  const [menu, setMenu] = useState<number | null>(null);
+  const musclesNow = useMemo(
+    () => (active ? setsPerMuscle([active], exercises, active.startedAt.slice(0, 10), active.startedAt.slice(0, 10)) : {}),
+    [active, exercises],
+  );
 
   const prevById = useMemo(() => {
     const out: Record<string, WorkoutSet[]> = {};
@@ -254,6 +300,21 @@ export default function ActiveWorkoutScreen() {
   const elapsed = Math.max(0, Math.floor((now - new Date(active.startedAt).getTime()) / 1000));
   const doneSets = completedSets(active);
 
+  const supersetIds = [...new Set(active.exercises.map((e) => e.supersetId).filter(Boolean))] as string[];
+  const menuOptions = (i: number): SheetOption[] => {
+    const item = active.exercises[i];
+    if (!item) return [];
+    return [
+      ...(i > 0 ? [{ label: 'Mover para cima', icon: 'arrow-up' as const, onPress: () => update((w) => moveExercise(w, i, -1)) }] : []),
+      ...(i < active.exercises.length - 1 ? [{ label: 'Mover para baixo', icon: 'arrow-down' as const, onPress: () => update((w) => moveExercise(w, i, 1)) }] : []),
+      { label: 'Substituir exercício', icon: 'swap-horizontal', onPress: () => router.push({ pathname: '/training/exercises', params: { pick: 'replace', index: String(i) } }) },
+      ...(active.exercises.length > 1
+        ? [{ label: item.supersetId ? 'Remover do superset' : 'Fazer superset com o próximo', icon: 'link-outline' as const, onPress: () => update((w) => toggleSuperset(w, i)) }]
+        : []),
+      { label: 'Remover exercício', icon: 'close', danger: true, onPress: () => update((w) => ({ ...w, exercises: w.exercises.filter((_, j) => j !== i) })) },
+    ];
+  };
+
   const doFinish = () => {
     const w = finish();
     if (w && w.exercises.length > 0) router.replace({ pathname: '/training/[id]', params: { id: w.id, fresh: '1' } });
@@ -267,12 +328,20 @@ export default function ActiveWorkoutScreen() {
         <View style={styles.inputRow}>
           <TextInput value={active.name} onChangeText={(name) => update((w) => ({ ...w, name }))} style={[styles.input, { fontWeight: '700' }]} />
         </View>
-        <View style={styles.row}>
-          <Muted>Duração {mmss(elapsed)}</Muted>
-          <Muted>Volume {Math.round(workoutVolume(active)).toLocaleString('pt-BR')} kg</Muted>
-          <Muted>Séries {doneSets}</Muted>
-          <LinkText onPress={() => setShowRpe(!showRpe)}>{showRpe ? 'Ocultar RPE' : 'Mostrar RPE'}</LinkText>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {[
+            ['Duração', mmss(elapsed)],
+            ['Volume', `${Math.round(workoutVolume(active)).toLocaleString('pt-BR')} kg`],
+            ['Séries', String(doneSets)],
+          ].map(([label, value], i) => (
+            <View key={label} style={{ flex: 1 }}>
+              <Text style={[styles.muted, { fontSize: 12 }]}>{label}</Text>
+              <Text style={{ color: i === 0 ? colors.primary : colors.text, fontSize: 17, fontVariant: ['tabular-nums'] }}>{value}</Text>
+            </View>
+          ))}
+          <BodyMap sets={musclesNow} height={56} />
         </View>
+        <LinkText onPress={() => setShowRpe(!showRpe)}>{showRpe ? 'Ocultar RPE' : 'Mostrar RPE'}</LinkText>
 
 
         {active.exercises.length === 0 ? <Muted>Adicione o primeiro exercício para começar.</Muted> : null}
@@ -288,7 +357,8 @@ export default function ActiveWorkoutScreen() {
               prev={prevById[item.exerciseId] ?? []}
               showRpe={showRpe}
               onChange={(fn) => update((w) => ({ ...w, exercises: w.exercises.map((e, j) => (j === idx ? fn(e) : e)) }))}
-              onRemove={() => update((w) => ({ ...w, exercises: w.exercises.filter((_, j) => j !== idx) }))}
+              supersetColor={item.supersetId ? SUPERSET_COLORS[supersetIds.indexOf(item.supersetId) % SUPERSET_COLORS.length] : undefined}
+              onMenu={() => setMenu(idx)}
               onDone={(sec) => setRestEndsAt(sec > 0 ? Date.now() + sec * 1000 : null)}
             />
           );
@@ -300,6 +370,13 @@ export default function ActiveWorkoutScreen() {
           <LinkText onPress={() => setConfirm('discard')}>Descartar treino</LinkText>
         </View>
       </ScrollView>
+
+      <ActionSheet
+        visible={menu !== null}
+        title={menu !== null ? exercises[active.exercises[menu]?.exerciseId]?.name : undefined}
+        options={menu !== null ? menuOptions(menu) : []}
+        onClose={() => setMenu(null)}
+      />
 
       <Modal visible={confirm !== null} transparent animationType="fade" onRequestClose={() => setConfirm(null)}>
         <View style={{ flex: 1, backgroundColor: colors.overlay, justifyContent: 'center', padding: 16 }}>

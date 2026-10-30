@@ -17,6 +17,8 @@ export type WorkoutSet = {
   weightKg?: number;
   reps?: number;
   durationSec?: number;
+  /** Distância do cardio (km). */
+  distanceKm?: number;
   /** Esforço percebido, 6 a 10 (10 = falha). */
   rpe?: number;
   done: boolean;
@@ -277,4 +279,28 @@ export function workoutFromRoutine(routine: Routine, history: Workout[], id: str
       };
     }),
   };
+}
+
+/** Liga o exercício ao seguinte num superset (ou desfaz, se já estiver ligado). */
+export function toggleSuperset(w: Workout, i: number): Workout {
+  const list = [...w.exercises];
+  const cur = list[i];
+  if (cur.supersetId) {
+    const id = cur.supersetId;
+    const left = list.filter((e, j) => j !== i && e.supersetId === id).length;
+    return { ...w, exercises: list.map((e, j) => (j === i || (left < 2 && e.supersetId === id) ? { ...e, supersetId: undefined } : e)) };
+  }
+  const next = list[i + 1] ?? list[i - 1];
+  if (!next) return w;
+  const id = next.supersetId ?? `ss-${Date.now().toString(36)}`;
+  return { ...w, exercises: list.map((e, j) => (j === i || e === next ? { ...e, supersetId: id } : e)) };
+}
+
+/** Move o exercício uma posição para cima (-1) ou para baixo (+1). */
+export function moveExercise(w: Workout, i: number, d: -1 | 1): Workout {
+  const j = i + d;
+  if (j < 0 || j >= w.exercises.length) return w;
+  const list = [...w.exercises];
+  [list[i], list[j]] = [list[j], list[i]];
+  return { ...w, exercises: list };
 }

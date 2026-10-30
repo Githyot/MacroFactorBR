@@ -2,6 +2,7 @@ import { router, Stack, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 
+import { ExerciseAnimation } from '../../components/ExerciseAnimation';
 import { Button, Card, colors, LinkText, Muted, parseInput, styles, useTheme } from '../../components/ui';
 import { RoutineExercise, workoutFromRoutine } from '../../domain/workout/training';
 import { newId, useAllExercises, useAppStore } from '../../store/useAppStore';
@@ -80,7 +81,10 @@ export default function RoutineEditor() {
       {routine.exercises.map((e, i) => (
         <Card key={`${e.exerciseId}-${i}`}>
           <View style={styles.rowBetween}>
-            <Text style={{ flex: 1, color: colors.text, fontWeight: '700' }}>{exercises[e.exerciseId]?.name ?? '?'}</Text>
+            <Pressable style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }} onPress={() => router.push({ pathname: '/exercise/[id]', params: { id: e.exerciseId } })}>
+              <ExerciseAnimation exerciseId={e.exerciseId} size={44} animate={false} round />
+              <Text style={{ flex: 1, color: colors.primary, fontWeight: '700' }}>{exercises[e.exerciseId]?.name ?? '?'}</Text>
+            </Pressable>
             <View style={{ flexDirection: 'row', gap: 14 }}>
               <Pressable onPress={() => move(i, -1)} hitSlop={6} accessibilityLabel="Subir">
                 <Text style={{ color: colors.muted, fontSize: 16 }}>↑</Text>
