@@ -1,276 +1,169 @@
+// Painel do modo Dieta: a semana de nutrição no topo e, embaixo, cartões que levam
+// ao gráfico de cada métrica (gasto, peso, hábitos, corpo e macros do dia).
+
 import { router } from 'expo-router';
-import { useState } from 'react';
-import { Pressable, ScrollView, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { ScrollView, Text, View } from 'react-native';
 
-import { ActionTile, Collapsible, dayLabel, IconButton, ListCard, ListRow, MacroLine, Pill, Ring, Section, WeekStrip } from '../../components/diet';
+import { CardGrid, DotGrid, fmtNum, MetricCard, MiniLine, MiniTargetBar, PillTabs, RoundButton, ScreenHeader, SectionHeader, TREND_COLOR, WeekDay, WeeklyNutrition } from '../../components/dash';
+import { ListCard, ListRow } from '../../components/diet';
 import { switchMode } from '../../components/ModeSwitch';
-import { ActionSheet } from '../../components/training';
-import { Button, Card, colors, Muted, styles, Title, useTheme } from '../../components/ui';
+import { Button, colors, styles, useTheme } from '../../components/ui';
+import { trendWeights } from '../../domain/adaptiveTdee';
 import { isCheckInDue } from '../../domain/checkin';
-import { dailyTips } from '../../domain/coach';
-import { addDays, DiaryEntry, entryNutrients, Meal, MEALS, todayIso } from '../../domain/foods';
-import { LEUCINE_PER_MEAL_TARGET } from '../../domain/protein';
-import { scheduledDoses } from '../../domain/supplements';
-import { proteinPerMealRange } from '../../domain/targets';
-import { useDay } from '../../hooks/useDay';
-import { useAppStore, useHydrated } from '../../store/useAppStore';
+import { dailyMacros, datesBetween, expenditureSeries, weekOf } from '../../domain/dashboard';
+import { addDays, dayTotals, DiaryEntry, todayIso } from '../../domain/foods';
+import { dayTargets } from '../../domain/targets';
+import { useTargets } from '../../hooks/useTargets';
+import { useAllFoods, useAppStore, useHydrated } from '../../store/useAppStore';
 
-const fmt1 = (n: number) => n.toFixed(1).replace('.', ',');
-
-export default function TodayScreen() {
+export default function DashboardScreen() {
   useTheme();
   const hydrated = useHydrated();
-  const [date, setDate] = useState(todayIso());
-  const day = useDay(date);
-  const removeEntry = useAppStore((s) => s.removeEntry);
-  const copyMeal = useAppStore((s) => s.copyMeal);
-  const saveMeal = useAppStore((s) => s.saveMeal);
-  const setTrainingDay = useAppStore((s) => s.setTrainingDay);
-  const checkIns = useAppStore((s) => s.checkIns);
+  const today = todayIso();
+  const data = useTargets();
+  const foods = useAllFoods();
+  const entries = useAppStore((s) => s.entries);
   const weights = useAppStore((s) => s.weights);
-  const allEntries = useAppStore((s) => s.entries);
-  const supplements = useAppStore((s) => s.supplements);
-  const supplementLog = useAppStore((s) => s.supplementLog);
-  const [flash, setFlash] = useState<string | null>(null);
-  const [menu, setMenu] = useState<Meal | null>(null);
+  const measurements = useAppStore((s) => s.measurements);
+  const trainingDays = useAppStore((s) => s.trainingDays);
+  const checkIns = useAppStore((s) => s.checkIns);
+  const [selected, setSelected] = useState(today);
+  const [mode, setMode] = useState<'consumed' | 'remaining'>('consumed');
+
+  const intakeByDate = useMemo(() => {
+    const byDate: Record<string, DiaryEntry[]> = {};
+    for (const e of entries) (byDate[e.date] ??= []).push(e);
+    return Object.fromEntries(Object.entries(byDate).map(([d, list]) => [d, dayTotals(list, foods).kcal ?? 0]));
+  }, [entries, foods]);
+
+  const last7 = datesBetween(addDays(today, -6), today);
+  const last30 = datesBetween(addDays(today, -29), today);
+  const expenditure = useMemo(() => expenditureSeries(weights, intakeByDate, datesBetween(addDays(today, -6), today)), [weights, intakeByDate, today]);
 
   if (!hydrated) return null;
 
-  if (!day.data) {
+  const header = <ScreenHeader title="Painel" right={<RoundButton icon="options-outline" label="Metas e perfil" onPress={() => router.navigate('/profile')} />} />;
+
+  if (!data) {
     return (
-      <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-        <Card>
-          <Title>Bem-vindo ao MacroFactorBR</Title>
-          <Muted style={{ marginBottom: 16 }}>
-            Cadastre seu peso, altura, nível de treino e objetivo para calcular suas metas de calorias e proteína para ganho de massa magra.
-          </Muted>
-          <Button title="Configurar meu perfil" onPress={() => router.push('/profile')} />
-        </Card>
+      <ScrollView style={styles.screen}>
+        {header}
+        <View style={{ padding: 16 }}>
+          <View style={[styles.card, { gap: 12 }]}>
+            <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800' }}>Bem-vindo ao MacroFactorBR</Text>
+            <Text style={[styles.muted, { fontSize: 15 }]}>
+              Cadastre seu peso, altura, nível de treino e objetivo para calcular suas metas de calorias e proteína para ganho de massa magra.
+            </Text>
+            <Button title="Configurar meu perfil" onPress={() => router.push('/profile')} />
+          </View>
+        </View>
       </ScrollView>
     );
   }
 
-  const { targets, profile, adaptive } = day.data;
-  const { totals, byMeal, entries, foods } = day;
-  const kcalTarget = day.day!.kcal;
-  const carbsTarget = day.day!.carbs;
-  const kcal = totals.kcal ?? 0;
-  const kcalLeft = Math.round(kcalTarget - kcal);
-  const [mealMin] = proteinPerMealRange(profile.weightKg);
-  const proteinLeft = Math.max(0, targets.protein - (totals.protein ?? 0));
-  const lastCheckIn = checkIns[checkIns.length - 1]?.date;
-  // Primeiro check-in só depois de uma semana de pesagens; os seguintes, a cada 7 dias.
-  const firstWeight = weights[0]?.date;
-  const showCheckIn =
-    date === todayIso() && isCheckInDue(lastCheckIn, date) && (adaptive.status === 'ok' || (!!firstWeight && firstWeight <= addDays(date, -7)));
-  const tips = dailyTips({
-    totals,
-    targets,
-    mealProtein: day.mealProtein!,
-    proteinPerMealMin: mealMin,
-    micros: day.micros!,
-    hour: date === todayIso() ? new Date().getHours() : 23,
+  const { targets, profile, adaptive } = data;
+  const week = weekOf(today);
+  const macros = dailyMacros(entries, foods, week);
+  const days: WeekDay[] = macros.map((m) => {
+    const dt = dayTargets(targets, profile, trainingDays[m.date] ?? false);
+    return { ...m, target: { kcal: dt.kcal, protein: targets.protein, fat: targets.fat, carbs: dt.carbs } };
   });
-  const knownMicros = day.micros!.filter((m) => m.known);
-  const okMicros = knownMicros.filter((m) => m.ok).length;
-  const scheduled = Object.values(supplements).map((s) => ({ s, doses: scheduledDoses(s, date) })).filter((x) => x.doses > 0);
-  const dosesTotal = scheduled.reduce((n, x) => n + x.doses, 0);
-  const dosesDone = scheduled.reduce((n, x) => n + Math.min(x.doses, supplementLog[date]?.[x.s.id] ?? 0), 0);
-  const loggedDays = new Set(allEntries.map((e) => e.date));
+  const todayM = days.find((d) => d.date === today) ?? days[days.length - 1];
 
-  const notify = (msg: string) => {
-    setFlash(msg);
-    setTimeout(() => setFlash(null), 2500);
-  };
-  const addTo = (meal?: Meal) => router.push({ pathname: '/foods', params: { ...(meal ? { meal } : {}), date } });
-  const menuMeal = MEALS.find((m) => m.key === menu);
-  const menuList = entries.filter((e) => e.meal === menu);
-  const yesterdayOf = (meal: Meal) => allEntries.filter((e) => e.date === addDays(date, -1) && e.meal === meal).length;
+  const trend = trendWeights(weights);
+  const trendLast7 = last7.map((d) => [...trend].reverse().find((t) => t.date <= d)?.kg);
+  const lastTrend = trend[trend.length - 1]?.kg;
+  const lastWeights = weights.slice(-7);
+  const fat = measurements.filter((m) => m.bodyFatPct !== undefined).slice(-7);
+  const weighed = new Set(weights.map((w) => w.date));
+  const logged = new Set(entries.map((e) => e.date));
+  const thisWeek = (set: Set<string>) => week.filter((d) => d <= today && set.has(d)).length;
+  const lastExp = [...expenditure].reverse().find((v) => v !== undefined);
+  const firstWeight = weights[0]?.date;
+  const checkInDue =
+    isCheckInDue(checkIns[checkIns.length - 1]?.date, today) && (adaptive.status === 'ok' || (!!firstWeight && firstWeight <= addDays(today, -7)));
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <WeekStrip date={date} onChange={setDate} marked={(d) => loggedDays.has(d)} />
-
-      {showCheckIn ? (
-        <ListCard style={{ borderColor: colors.primary, borderWidth: 1 }}>
-          <ListRow first icon="calendar-outline" iconColor={colors.primary} title="Check-in semanal disponível" subtitle="Veja a semana e ajuste as metas" onPress={() => router.push('/checkin')} />
-        </ListCard>
-      ) : null}
-
-      <Card>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-          <Ring value={kcal} target={kcalTarget} color={colors.primary} size={124} stroke={11}>
-            <Text style={{ fontSize: 26, fontWeight: '800', color: colors.text, fontVariant: ['tabular-nums'] }}>{Math.abs(kcalLeft)}</Text>
-            <Text style={{ fontSize: 12, color: colors.muted }}>{kcalLeft >= 0 ? 'kcal restantes' : 'kcal acima'}</Text>
-          </Ring>
-          <View style={{ flex: 1, gap: 12 }}>
-            <MacroLine label="Proteína" value={totals.protein ?? 0} target={targets.protein} unit="g" color={colors.protein} strong />
-            <MacroLine label="Carboidratos" value={totals.carbs ?? 0} target={carbsTarget} unit="g" color={colors.carbs} />
-            <MacroLine label="Gorduras" value={totals.fat ?? 0} target={targets.fat} unit="g" color={colors.fat} />
-          </View>
+    <ScrollView style={styles.screen} contentContainerStyle={{ paddingBottom: 40 }}>
+      <View style={{ backgroundColor: colors.card, paddingBottom: 18 }}>
+        {header}
+        <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800', paddingHorizontal: 16, marginTop: 10, marginBottom: 14 }}>Nutrição da semana</Text>
+        <WeeklyNutrition days={days} selected={selected} onSelect={setSelected} mode={mode} />
+        <View style={{ alignItems: 'center', marginTop: 14 }}>
+          <PillTabs
+            options={[
+              { value: 'consumed', label: 'Consumido' },
+              { value: 'remaining', label: 'Restante' },
+            ]}
+            value={mode}
+            onChange={setMode}
+            style={{ width: 260 }}
+          />
         </View>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginTop: 14 }}>
-          <Text style={[styles.muted, { fontSize: 13, flex: 1, minWidth: 160 }]}>
-            {Math.round(kcal)} de {kcalTarget} kcal ·{' '}
-            {proteinLeft > 0 ? `faltam ${Math.round(proteinLeft)} g de proteína` : 'proteína batida 💪'}
-          </Text>
-          {profile.carbCycling ? (
-            <Pressable onPress={() => setTrainingDay(date, !day.isTrainingDay)} accessibilityRole="switch" accessibilityState={{ checked: day.isTrainingDay }}>
-              <Pill text={day.isTrainingDay ? 'Dia de treino' : 'Dia de descanso'} tone={day.isTrainingDay ? 'good' : 'neutral'} icon={day.isTrainingDay ? 'barbell' : 'bed-outline'} />
-            </Pressable>
-          ) : null}
-        </View>
-        {day.proteinSplit.supplement > 0 ? (
-          <View style={{ marginTop: 10 }}>
-            <View style={{ flexDirection: 'row', height: 4, borderRadius: 2, overflow: 'hidden', backgroundColor: colors.track }}>
-              <View style={{ flex: day.proteinSplit.food, backgroundColor: colors.protein }} />
-              <View style={{ flex: day.proteinSplit.supplement, backgroundColor: colors.carbs }} />
-            </View>
-            <Text style={[styles.muted, { fontSize: 12, marginTop: 4 }]}>
-              Proteína: comida {Math.round(day.proteinSplit.food)} g · suplementos {Math.round(day.proteinSplit.supplement)} g ({Math.round(day.proteinSplit.supplementPct * 100)}%)
-            </Text>
-          </View>
-        ) : null}
-      </Card>
-
-      <View style={{ flexDirection: 'row', gap: 8 }}>
-        <ActionTile icon="search" label="Buscar" primary onPress={() => addTo()} />
-        <ActionTile icon="barcode-outline" label="Código" onPress={() => router.push({ pathname: '/scan', params: { date } })} />
-        <ActionTile icon="mic-outline" label="Texto/voz" onPress={() => router.push({ pathname: '/quick-add', params: { date } })} />
-        <ActionTile icon="camera-outline" label="Foto (IA)" onPress={() => router.push({ pathname: '/quick-add', params: { date, mode: 'photo' } })} />
       </View>
 
-      {flash ? (
-        <View style={[styles.warning, { backgroundColor: colors.primarySoft }]}>
-          <Text style={{ color: colors.onPrimarySoft }}>{flash}</Text>
-        </View>
-      ) : null}
+      <View style={{ paddingHorizontal: 16, maxWidth: 720, width: '100%', alignSelf: 'center' }}>
+        {checkInDue ? (
+          <ListCard style={{ marginTop: 16 }}>
+            <ListRow first icon="calendar" title="Check-in semanal disponível" subtitle="Veja como foi a semana e ajuste as metas" onPress={() => router.push('/checkin')} />
+          </ListCard>
+        ) : null}
 
-      <Section title="Refeições" />
-      {MEALS.map((meal) => {
-        const list = entries.filter((e) => e.meal === meal.key);
-        const t = byMeal[meal.key];
-        const p = t.protein ?? 0;
-        const leu = t.leucine ?? 0;
-        const yesterdayCount = yesterdayOf(meal.key);
-        return (
-          <View key={meal.key} style={[styles.card, { paddingVertical: 12 }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <Pressable style={{ flex: 1 }} onPress={() => setMenu(meal.key)} accessibilityLabel={`Opções de ${meal.label}`}>
-                <Text style={{ color: colors.text, fontSize: 16, fontWeight: '700' }}>{meal.label}</Text>
-                {list.length > 0 ? (
-                  <Text style={[styles.muted, { fontSize: 13 }]}>
-                    {Math.round(t.kcal ?? 0)} kcal · {Math.round(p)} g proteína
-                  </Text>
-                ) : null}
-              </Pressable>
-              {list.length > 0 || yesterdayCount > 0 ? <IconButton icon="ellipsis-horizontal" label={`Opções de ${meal.label}`} onPress={() => setMenu(meal.key)} /> : null}
-              <IconButton icon="add" label={`Adicionar em ${meal.label}`} filled onPress={() => addTo(meal.key)} />
-            </View>
-            {list.length === 0 && yesterdayCount > 0 ? (
-              <Pressable onPress={() => notify(`${copyMeal(addDays(date, -1), date, meal.key)} itens copiados de ontem.`)} hitSlop={6} style={{ marginTop: 6 }}>
-                <Text style={{ color: colors.primary, fontSize: 13, fontWeight: '600' }}>Copiar de ontem ({yesterdayCount})</Text>
-              </Pressable>
-            ) : null}
-            {list.length > 0 ? (
-              <View style={{ marginTop: 8 }}>
-                {list.map((e) => (
-                  <EntryRow key={e.id} entry={e} foods={foods} meal={meal.key} date={date} onRemove={() => removeEntry(e.id)} />
-                ))}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-                  <Pill
-                    tone={p >= mealMin ? 'good' : 'warn'}
-                    icon={p >= mealMin ? 'checkmark-circle' : 'alert-circle'}
-                    text={p >= mealMin ? `Proteína ok (${Math.round(p)}/${targets.proteinPerMeal} g)` : `Proteína baixa: ${Math.round(p)} g, mín. ${mealMin} g`}
-                  />
-                  {leu < LEUCINE_PER_MEAL_TARGET ? <Pill tone="neutral" text={`Leucina ${fmt1(leu)} g (ideal 2,5)`} /> : null}
-                </View>
-              </View>
-            ) : null}
-          </View>
-        );
-      })}
+        <SectionHeader title="Análises" onSeeAll={() => router.push('/progress')} />
+        <CardGrid>
+          <MetricCard title="Gasto" subtitle="Energético, 7 dias" value={lastExp ? fmtNum(lastExp) : fmtNum(targets.tdee)} unit="kcal" onPress={() => router.push('/metric/gasto')}>
+            <MiniLine values={expenditure.some((v) => v !== undefined) ? expenditure : [targets.tdee]} color={colors.protein} />
+          </MetricCard>
+          <MetricCard title="Tendência" subtitle="Peso, 7 dias" value={lastTrend ? fmtNum(lastTrend, 1) : '–'} unit="kg" onPress={() => router.push('/metric/tendencia')}>
+            <MiniLine values={trendLast7} color={TREND_COLOR} />
+          </MetricCard>
+        </CardGrid>
 
-      <Section title="Mais do dia" />
-      <ListCard>
-        <ListRow
-          first
-          icon="leaf-outline"
-          title="Micronutrientes"
-          subtitle={knownMicros.length ? `${okMicros} de ${knownMicros.length} alvos atingidos` : 'Registre refeições para ver'}
-          onPress={() => router.push({ pathname: '/micros', params: { date } })}
-        />
-        <ListRow
-          icon="medkit-outline"
-          title="Suplementação"
-          subtitle={dosesTotal ? `${dosesDone} de ${dosesTotal} doses marcadas` : Object.keys(supplements).length ? 'Nada programado para este dia' : 'Monte seu protocolo'}
-          right={dosesTotal && dosesDone >= dosesTotal ? <Pill tone="good" icon="checkmark-circle" text="Ok" /> : undefined}
-          onPress={() => router.navigate('/plano')}
-        />
-        <ListRow icon="restaurant-outline" title="Cardápio da semana" subtitle="Refeições prontas que batem suas metas" onPress={() => router.push('/plan')} />
-        <ListRow icon="barbell-outline" title="Ir para o modo Treino" subtitle={day.isTrainingDay ? 'Dia de treino registrado' : 'Registrar o treino de hoje'} onPress={() => switchMode('treino')} />
-      </ListCard>
-      {day.limitWarnings.length ? (
-        <View style={styles.warning}>
-          <Text style={styles.warningText}>Alguma dose de hoje passa do limite seguro. Confira em Plano › Suplementação.</Text>
-        </View>
-      ) : null}
+        <SectionHeader title="Hábitos" />
+        <CardGrid>
+          <MetricCard title="Pesagem" subtitle="Últimos 30 dias" value={`${thisWeek(weighed)}/7`} unit="na semana" onPress={() => router.push('/habit/pesagem')}>
+            <DotGrid days={last30.map((d) => weighed.has(d))} color={colors.carbs} />
+          </MetricCard>
+          <MetricCard title="Registro" subtitle="Últimos 30 dias" value={`${thisWeek(logged)}/7`} unit="na semana" onPress={() => router.push('/habit/registro')}>
+            <DotGrid days={last30.map((d) => logged.has(d))} color={colors.kcal} />
+          </MetricCard>
+        </CardGrid>
 
-      {tips.length > 0 ? (
-        <Collapsible title="Dicas do coach" icon="bulb-outline" summary={`${tips.length}`}>
-          {tips.map((t) => (
-            <Text key={t} style={{ color: colors.text, marginBottom: 6, lineHeight: 20 }}>
-              • {t}
-            </Text>
-          ))}
-        </Collapsible>
-      ) : null}
+        <SectionHeader title="Corpo" onSeeAll={() => router.push({ pathname: '/progress', params: { tab: 'medidas' } })} />
+        <CardGrid>
+          <MetricCard title="Peso na balança" subtitle="Últimas 7 pesagens" value={lastWeights.length ? fmtNum(lastWeights[lastWeights.length - 1].kg, 1) : '–'} unit="kg" onPress={() => router.push('/metric/peso')}>
+            <MiniLine values={lastWeights.map((w) => w.kg)} color={colors.carbs} />
+          </MetricCard>
+          <MetricCard title="% de gordura" subtitle="Últimas 7 medidas" value={fat.length ? fmtNum(fat[fat.length - 1].bodyFatPct!, 1) : '–'} unit="%" onPress={() => router.push('/metric/gordura-corporal')}>
+            <MiniLine values={fat.map((m) => m.bodyFatPct)} color={colors.carbs} />
+          </MetricCard>
+        </CardGrid>
 
-      <ActionSheet
-        visible={menu !== null}
-        title={menuMeal?.label}
-        onClose={() => setMenu(null)}
-        options={[
-          { label: 'Adicionar alimento', icon: 'add-circle-outline', onPress: () => addTo(menu!) },
-          ...(menu && yesterdayOf(menu) > 0
-            ? [{ label: `Copiar de ontem (${yesterdayOf(menu)})`, icon: 'copy-outline' as const, onPress: () => notify(`${copyMeal(addDays(date, -1), date, menu)} itens copiados de ontem.`) }]
-            : []),
-          ...(menuList.length && menuMeal
-            ? [
-                {
-                  label: 'Salvar como refeição',
-                  icon: 'bookmark-outline' as const,
-                  onPress: () => {
-                    saveMeal(`${menuMeal.label} de ${dayLabel(date).toLowerCase()}`, menuList.map((e) => ({ foodId: e.foodId, grams: e.grams, note: e.note })));
-                    notify('Refeição salva. Use de novo em Alimentos › Refeições.');
-                  },
-                },
-                { label: 'Limpar refeição', icon: 'trash-outline' as const, danger: true, onPress: () => menuList.forEach((e) => removeEntry(e.id)) },
-              ]
-            : []),
-        ]}
-      />
+        <SectionHeader title="Nutrição" onSeeAll={() => router.push({ pathname: '/micros', params: { date: today } })} />
+        <CardGrid>
+          <MetricCard title="Calorias" subtitle="Hoje" value={fmtNum(todayM.kcal)} unit="kcal" onPress={() => router.push('/metric/calorias')}>
+            <MiniTargetBar value={todayM.kcal} target={todayM.target.kcal} color={colors.kcal} />
+          </MetricCard>
+          <MetricCard title="Proteína" subtitle="Hoje" value={fmtNum(todayM.protein, 1)} unit="g" onPress={() => router.push('/metric/proteina')}>
+            <MiniTargetBar value={todayM.protein} target={todayM.target.protein} color={colors.protein} />
+          </MetricCard>
+          <MetricCard title="Gordura" subtitle="Hoje" value={fmtNum(todayM.fat, 1)} unit="g" onPress={() => router.push('/metric/gordura')}>
+            <MiniTargetBar value={todayM.fat} target={todayM.target.fat} color={colors.fat} />
+          </MetricCard>
+          <MetricCard title="Carboidratos" subtitle="Hoje" value={fmtNum(todayM.carbs, 1)} unit="g" onPress={() => router.push('/metric/carboidratos')}>
+            <MiniTargetBar value={todayM.carbs} target={todayM.target.carbs} color={colors.carbs} />
+          </MetricCard>
+        </CardGrid>
+
+        <SectionHeader title="Mais" />
+        <ListCard>
+          <ListRow first icon="leaf-outline" title="Micronutrientes" subtitle="Vitaminas, minerais e fibra" onPress={() => router.push({ pathname: '/micros', params: { date: today } })} />
+          <ListRow icon="body-outline" title="Progresso" subtitle="Pesagens, medidas, fotos e relatório" onPress={() => router.push('/progress')} />
+          <ListRow icon="restaurant-outline" title="Cardápio da semana" subtitle="Refeições que batem suas metas" onPress={() => router.push('/plan')} />
+          <ListRow icon="barbell-outline" title="Modo Treino" subtitle="Rotinas, registro e estatísticas" onPress={() => switchMode('treino')} />
+        </ListCard>
+      </View>
     </ScrollView>
-  );
-}
-
-function EntryRow({ entry, foods, meal, date, onRemove }: { entry: DiaryEntry; foods: ReturnType<typeof useDay>['foods']; meal: Meal; date: string; onRemove: () => void }) {
-  const food = foods[entry.foodId];
-  const n = entryNutrients(entry, food);
-  return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 7, borderTopWidth: 1, borderTopColor: colors.border, gap: 10 }}>
-      <Pressable style={{ flex: 1 }} onPress={() => food && router.push({ pathname: '/food/[id]', params: { id: food.id, meal, date } })}>
-        <Text style={{ color: colors.text, fontSize: 15 }} numberOfLines={1}>
-          {food?.name ?? 'Alimento removido'}
-        </Text>
-        <Text style={[styles.muted, { fontSize: 13 }]}>
-          {entry.note ?? `${entry.grams} g`} · {Math.round(n.protein ?? 0)} g P
-        </Text>
-      </Pressable>
-      <Text style={{ color: colors.text, fontSize: 14, fontVariant: ['tabular-nums'] }}>{Math.round(n.kcal ?? 0)} kcal</Text>
-      <Pressable accessibilityLabel="Remover" onPress={onRemove} hitSlop={8}>
-        <Text style={{ color: colors.muted, fontSize: 15 }}>✕</Text>
-      </Pressable>
-    </View>
   );
 }

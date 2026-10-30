@@ -43,11 +43,13 @@ export default function TrainingHome() {
           {[
             ['Esta semana', `${week.workouts} ${week.workouts === 1 ? 'treino' : 'treinos'}`],
             ['Tempo', fmtDuration(week.durationMin)],
-            ['Sequência', `🔥 ${streak} ${streak === 1 ? 'semana' : 'semanas'}`],
+            ['Sequência', `🔥 ${streak} sem.`],
           ].map(([label, value]) => (
             <View key={label} style={{ flex: 1, minWidth: 90 }}>
               <Muted>{label}</Muted>
-              <Text style={{ fontSize: 18, fontWeight: '800', color: colors.text }}>{value}</Text>
+              <Text numberOfLines={1} style={{ fontSize: 18, fontWeight: '800', color: colors.text }}>
+                {value}
+              </Text>
             </View>
           ))}
         </View>

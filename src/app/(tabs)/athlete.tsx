@@ -39,7 +39,7 @@ export default function AthleteProfile() {
   const thisWeek = values[values.length - 1] ?? 0;
   const headline =
     metric === 'duration' ? fmtDuration(thisWeek) : metric === 'volume' ? `${fmtNumber(Math.round(thisWeek))} kg` : `${fmtNumber(thisWeek)} reps`;
-  const format = (v: number) => (metric === 'duration' ? `${fmtNumber(v / 60, 1)} h` : metric === 'volume' ? `${fmtCompact(v)}` : fmtNumber(v));
+  const format = (v: number) => (metric === 'duration' ? (v < 60 ? `${Math.round(v)} min` : `${fmtNumber(v / 60, 1)} h`) : metric === 'volume' ? `${fmtCompact(v)}` : fmtNumber(v));
   const lastMonth = prevMonth(today.slice(0, 7));
   const feed = [...done].reverse();
 
@@ -68,7 +68,7 @@ export default function AthleteProfile() {
           <Ionicons name="chevron-down" size={16} color={colors.primary} />
         </Pressable>
       </View>
-      <BarChart values={values} labels={weeks.map((w) => dayLabel(w.weekStart))} format={format} />
+      <BarChart values={values} labels={weeks.map((w) => dayLabel(w.weekStart))} format={format} minMax={metric === 'duration' ? 50 : metric === 'volume' ? 1000 : 10} />
       <Pills
         options={[
           { value: 'duration', label: 'Duração' },

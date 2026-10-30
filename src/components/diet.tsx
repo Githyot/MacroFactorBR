@@ -6,6 +6,7 @@ import { Pressable, Text, View, ViewStyle } from 'react-native';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
 
 import { addDays, todayIso } from '../domain/foods';
+import { TREND_COLOR } from './dash';
 import { colors, styles } from './ui';
 
 type IconName = ComponentProps<typeof Ionicons>['name'];
@@ -292,7 +293,7 @@ export function WeightChart({ points, height = 170 }: { points: { date: string; 
         {points.map((p, i) => (
           <Circle key={p.date} cx={x(i)} cy={y(p.kg)} r={2.5} fill={colors.muted} />
         ))}
-        <Polyline points={points.map((p, i) => `${x(i)},${y(p.trend)}`).join(' ')} fill="none" stroke={colors.primary} strokeWidth={3} strokeLinejoin="round" />
+        <Polyline points={points.map((p, i) => `${x(i)},${y(p.trend)}`).join(' ')} fill="none" stroke={TREND_COLOR} strokeWidth={3} strokeLinejoin="round" />
       </Svg>
       {[0, 0.5, 1].map((f) => (
         <Text key={f} style={{ position: 'absolute', left: 0, top: y(min + (max - min) * f) - 8, fontSize: 10, color: colors.muted, width: left - 6, textAlign: 'right' }}>
