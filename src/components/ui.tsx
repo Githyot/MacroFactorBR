@@ -257,7 +257,8 @@ function makeStyles(c: Palette, def: ThemeDef) {
       backgroundColor: c.inputBg,
       ...(def.id === 'windows' ? { borderBottomWidth: 2, borderBottomColor: c.muted } : {}),
     },
-    input: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: c.text, ...font },
+    // minWidth 0: na web o campo tem largura própria e empurrava a unidade (kg, cm) para fora.
+    input: { flex: 1, minWidth: 0, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: c.text, ...font },
     suffix: { paddingRight: 12, color: c.muted },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
     chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: sh.radiusChip, borderWidth: 1, borderColor: c.border, backgroundColor: glass ? c.cardAlt : c.inputBg },
