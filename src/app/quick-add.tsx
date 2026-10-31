@@ -161,7 +161,7 @@ export default function QuickAddScreen() {
       })
       .filter((x): x is NonNullable<typeof x> => Boolean(x));
     addEntries(list);
-    router.dismissTo('/');
+    router.dismissTo('/diario');
   };
 
   const nutrientsOf = (i: Item) => {

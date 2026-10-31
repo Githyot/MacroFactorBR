@@ -64,6 +64,7 @@ export function BarChart({
   height = 170,
   highlight,
   every,
+  minMax,
 }: {
   values: number[];
   labels: string[];
@@ -73,11 +74,13 @@ export function BarChart({
   highlight?: number;
   /** Mostra 1 a cada N rótulos do eixo X (padrão: cerca de 6 rótulos). */
   every?: number;
+  /** Topo mínimo do eixo, para o gráfico vazio não mostrar rótulos repetidos. */
+  minMax?: number;
 }) {
   const [width, onLayout] = useWidth();
   const top = 8;
   const plotH = height - top - 22;
-  const max = niceMax(Math.max(...values, 0));
+  const max = niceMax(Math.max(...values, minMax ?? 0));
   const step = (width - AXIS_W) / Math.max(1, values.length);
   const barW = Math.max(3, Math.min(28, step * 0.62));
   return (

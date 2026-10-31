@@ -179,7 +179,7 @@ export default function FoodsScreen() {
                       <LinkText
                         onPress={() => {
                           addEntries(m.items.map((x) => ({ ...x, date, meal: target })));
-                          router.navigate('/');
+                          router.navigate('/diario');
                         }}
                       >
                         + {MEALS.find((x) => x.key === target)?.label}

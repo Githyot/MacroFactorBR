@@ -2,18 +2,18 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
-import { ListCard, ListRow, Section, Segmented, WeightChart } from '../../components/diet';
-import { Button, Card, Chips, colors, Field, LinkText, Muted, parseInput, styles, Title, useTheme } from '../../components/ui';
-import { MIN_LOGGED_DAYS, MIN_WEIGH_INS, trendWeights } from '../../domain/adaptiveTdee';
-import { addDays, todayIso } from '../../domain/foods';
-import { hasFeature } from '../../domain/pro';
-import { diaryCsv, reportHtml, weightsCsv } from '../../domain/report';
-import { usePro } from '../../hooks/usePro';
-import { shareText, sharePdf } from '../../services/files';
-import { healthProviderName, readWeights, writeWeight } from '../../services/health';
-import { deleteProgressPhoto, pickProgressPhoto } from '../../services/photos';
-import { useTargets } from '../../hooks/useTargets';
-import { BodyMeasurement, ProgressPhoto, useAllFoods, useAppStore } from '../../store/useAppStore';
+import { ListCard, ListRow, Section, Segmented, WeightChart } from '../components/diet';
+import { Button, Card, Chips, colors, Field, LinkText, Muted, parseInput, styles, Title, useTheme } from '../components/ui';
+import { MIN_LOGGED_DAYS, MIN_WEIGH_INS, trendWeights } from '../domain/adaptiveTdee';
+import { addDays, todayIso } from '../domain/foods';
+import { hasFeature } from '../domain/pro';
+import { diaryCsv, reportHtml, weightsCsv } from '../domain/report';
+import { usePro } from '../hooks/usePro';
+import { shareText, sharePdf } from '../services/files';
+import { healthProviderName, readWeights, writeWeight } from '../services/health';
+import { deleteProgressPhoto, pickProgressPhoto } from '../services/photos';
+import { useTargets } from '../hooks/useTargets';
+import { BodyMeasurement, ProgressPhoto, useAllFoods, useAppStore } from '../store/useAppStore';
 
 function fmt(kg: number) {
   return kg.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });

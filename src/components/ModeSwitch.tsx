@@ -19,10 +19,10 @@ export function switchMode(mode: AppMode) {
   router.replace(mode === 'treino' ? '/home' : '/');
 }
 
-export function ModeSwitch() {
+export function ModeSwitch({ compact }: { compact?: boolean } = {}) {
   const mode = useAppMode();
   return (
-    <View style={{ flexDirection: 'row', backgroundColor: colors.cardAlt, borderRadius: 999, padding: 3, marginRight: 12 }} accessibilityRole="tablist">
+    <View style={{ flexDirection: 'row', backgroundColor: colors.cardAlt, borderRadius: 999, padding: 3, marginRight: compact ? 0 : 12 }} accessibilityRole="tablist">
       {(
         [
           ['dieta', 'Dieta', 'nutrition-outline'],
@@ -36,10 +36,11 @@ export function ModeSwitch() {
             onPress={() => !on && switchMode(m)}
             accessibilityRole="tab"
             accessibilityState={{ selected: on }}
-            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 999, backgroundColor: on ? colors.primary : 'transparent' }}
+            accessibilityLabel={`Modo ${label}`}
+            style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: compact ? 7 : 5, paddingHorizontal: compact ? 12 : 10, borderRadius: 999, backgroundColor: on ? colors.primary : 'transparent' }}
           >
-            <Ionicons name={icon} size={14} color={on ? colors.onPrimary : colors.muted} />
-            <Text style={{ color: on ? colors.onPrimary : colors.muted, fontWeight: '700', fontSize: 13 }}>{label}</Text>
+            <Ionicons name={icon} size={compact ? 18 : 14} color={on ? colors.onPrimary : colors.muted} />
+            {compact ? null : <Text style={{ color: on ? colors.onPrimary : colors.muted, fontWeight: '700', fontSize: 13 }}>{label}</Text>}
           </Pressable>
         );
       })}

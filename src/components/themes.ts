@@ -76,7 +76,7 @@ const base = (p: Partial<Palette> & Pick<Palette, 'bg' | 'card' | 'text' | 'mute
   protein: p.primary,
   carbs: dark ? '#F2B94B' : '#B26A00',
   fat: dark ? '#C8A2FF' : '#7A4FB8',
-  kcal: p.text,
+  kcal: dark ? '#7EA6FF' : '#3B6FD8',
   danger: dark ? '#FF8A80' : '#B3261E',
   dangerSoft: dark ? 'rgba(255,138,128,0.16)' : '#FDE7E5',
   warn: dark ? '#FFCC66' : '#8A5A00',
@@ -94,16 +94,31 @@ const base = (p: Partial<Palette> & Pick<Palette, 'bg' | 'card' | 'text' | 'mute
 const SYSTEM_SANS = 'system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", sans-serif';
 
 export const THEMES: Record<ThemeId, ThemeDef> = {
+  // Padrão: limpo e minimalista, preto e branco com uma cor por macro
+  // (calorias azul, proteína coral, gordura amarela, carboidrato verde).
   padrao: {
     id: 'padrao',
     label: 'Padrão',
-    description: 'Verde do MacroFactorBR',
-    light: base({ bg: '#F4F6F5', card: '#FFFFFF', text: '#16201B', muted: '#5F6B65', border: '#DDE3E0', primary: '#127A4B', primarySoft: '#E3F2EA', cardAlt: '#EEF2F0' }, false),
+    description: 'Limpo e minimalista, preto e branco',
+    light: base(
+      {
+        bg: '#F4F4F4', card: '#FFFFFF', cardAlt: '#EFEFEF', text: '#111111', muted: '#6B6B6B', border: '#E8E8E8',
+        primary: '#111111', onPrimary: '#FFFFFF', primarySoft: '#E6F4EC', onPrimarySoft: '#1B7A48',
+        kcal: '#5B8DEF', protein: '#F0795A', fat: '#EFB233', carbs: '#3DA66B',
+        inputBg: '#EFEFEF', track: '#EEEEEE', bar: '#FFFFFF', inverse: '#111111',
+      },
+      false,
+    ),
     dark: base(
-      { bg: '#0F1412', card: '#18201C', text: '#E6EDE9', muted: '#9AA8A1', border: '#26302B', primary: '#4CC38A', onPrimary: '#06210F', primarySoft: '#173A28', bar: '#141A17' },
+      {
+        bg: '#000000', card: '#141414', cardAlt: '#222222', text: '#F2F2F2', muted: '#9A9A9A', border: '#262626',
+        primary: '#F2F2F2', onPrimary: '#111111', primarySoft: '#14301F', onPrimarySoft: '#6FD39A',
+        kcal: '#7EA6FF', protein: '#FF8E6E', fat: '#F5C452', carbs: '#56C285',
+        inputBg: '#1E1E1E', track: '#262626', bar: '#0A0A0A',
+      },
       true,
     ),
-    shape: { radiusCard: 14, radiusButton: 10, radiusChip: 20, radiusInput: 10, radiusSmall: 8, cardBorder: 1, cardShadow: false, buttonPadV: 13, titleWeight: '700', titleSize: 18, headerCenter: false, headerBorder: true, inputBorder: true, gap: 12, padding: 16 },
+    shape: { radiusCard: 18, radiusButton: 14, radiusChip: 100, radiusInput: 12, radiusSmall: 12, cardBorder: 0, cardShadow: false, buttonPadV: 14, titleWeight: '700', titleSize: 18, headerCenter: false, headerBorder: false, inputBorder: false, gap: 12, padding: 16 },
   },
 
   // Material You (Material 3): superfícies tonais, cartões preenchidos sem borda,
