@@ -41,7 +41,7 @@ export default function TodayScreen() {
           <Muted style={{ marginBottom: 16 }}>
             Cadastre seu peso, altura, nível de treino e objetivo para calcular suas metas de calorias e proteína para ganho de massa magra.
           </Muted>
-          <Button title="Configurar meu perfil" onPress={() => router.push('/profile')} />
+          <Button title="Configurar meu perfil" onPress={() => router.push('/onboarding')} />
         </Card>
       </ScrollView>
     );

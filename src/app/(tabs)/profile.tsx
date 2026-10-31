@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 
+import { GoalSummary, RatePicker } from '../../components/goalWeight';
 import { ThemePicker } from '../../components/ThemePicker';
 import { Button, Card, Chips, colors, Field, Muted, NavRow, parseInput, styles, Title, ToggleRow, useTheme } from '../../components/ui';
 import { todayIso } from '../../domain/foods';
@@ -10,8 +11,11 @@ import {
   ActivityLevel,
   computeTargets,
   DEFAULT_PROTEIN_PER_KG,
+  DIET_STYLES,
+  DietStyle,
   explainTargets,
   Goal,
+  goalWeightConflict,
   GOALS,
   Profile,
   proteinPerMealRange,
@@ -66,18 +70,25 @@ export default function ProfileScreen() {
   const [trainingLevel, setTrainingLevel] = useState<TrainingLevel>(profile?.trainingLevel ?? 'intermediate');
   const [trainingDays, setTrainingDays] = useState(String(profile?.trainingDays ?? 4));
   const [carbCycling, setCarbCycling] = useState(profile?.carbCycling ?? false);
+  const [goalWeight, setGoalWeight] = useState(profile?.goalWeightKg ? String(profile.goalWeightKg).replace('.', ',') : '');
+  const [rate, setRate] = useState(profile?.weeklyRatePct ? String(profile.weeklyRatePct) : '');
+  const [dietStyle, setDietStyle] = useState<DietStyle>(profile?.dietStyle ?? 'balanced');
   const [consent, setConsent] = useState(Boolean(consentAt));
   const [saved, setSaved] = useState(false);
 
   const birthDate = parseBirth(birth);
   const heightCm = parseInput(height);
   const weightKg = parseInput(weight);
+  const goalWeightKg = goalWeight ? parseInput(goalWeight) : undefined;
+  const rateValue = rate ? parseInput(rate) : undefined;
+  const goalConflict = Boolean(weightKg && goalWeightConflict({ goal, weightKg, goalWeightKg }));
   // Mostra o que impede o botão de salvar, em vez de deixá-lo apagado sem explicação.
   const missing = [
     !birthDate && 'nascimento (DD/MM/AAAA)',
     !heightCm && 'altura',
     !weightKg && 'peso',
     !consent && 'concordar com o uso dos dados',
+    goalConflict && 'peso alvo do lado certo do objetivo',
   ].filter((x): x is string => Boolean(x));
   const draft: Profile | undefined =
     birthDate && heightCm && weightKg
@@ -96,12 +107,16 @@ export default function ProfileScreen() {
           trainingDays: Math.min(7, Math.max(1, Math.round(parseInput(trainingDays) ?? 4))),
           carbCycling,
           kcalAdjustment: profile?.kcalAdjustment,
+          goalWeightKg: goal === 'recomp' ? undefined : goalWeightKg,
+          weeklyRatePct: goal === 'recomp' ? undefined : rateValue,
+          dietStyle,
+          dailyRoutine: profile?.dailyRoutine,
         }
       : undefined;
   const preview = draft ? computeTargets(draft) : undefined;
 
   const save = () => {
-    if (!draft || !consent) return;
+    if (!draft || !consent || goalConflict) return;
     if (!consentAt) updateSettings({ consentAt: new Date().toISOString() });
     const isFirst = !profile;
     saveProfile(draft);
@@ -113,6 +128,14 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      {!profile ? (
+        <Card style={{ borderColor: colors.primary }}>
+          <Title>Configuração guiada</Title>
+          <Muted style={{ marginBottom: 12 }}>Responda algumas perguntas, uma de cada vez, e o app calcula calorias, proteína e o ritmo até o seu peso alvo.</Muted>
+          <Button title="Começar" onPress={() => router.push('/onboarding')} />
+          <Muted style={{ marginTop: 10, fontSize: 12 }}>Ou preencha tudo de uma vez abaixo.</Muted>
+        </Card>
+      ) : null}
       <Card>
         <Title>Seus dados</Title>
         <Field label="Nome (opcional)" value={name} onChangeText={setName} />
@@ -140,6 +163,29 @@ export default function ProfileScreen() {
         <Muted>{GOALS[goal].description}</Muted>
       </Card>
 
+      {goal !== 'recomp' ? (
+        <Card>
+          <Title>Meta de peso</Title>
+          <Field
+            label="Peso alvo (opcional)"
+            suffix="kg"
+            keyboardType="decimal-pad"
+            value={goalWeight}
+            onChangeText={setGoalWeight}
+            placeholder={weightKg ? String(Math.round(weightKg + (goal === 'cut' ? -5 : 5))) : ''}
+          />
+          <Text style={styles.fieldLabel}>{goal === 'cut' ? 'Ritmo de perda' : 'Ritmo de ganho'}</Text>
+          <RatePicker goal={goal} level={trainingLevel} weightKg={weightKg} value={rate} onChange={setRate} />
+          {draft ? <GoalSummary profile={draft} editing /> : null}
+        </Card>
+      ) : null}
+
+      <Card>
+        <Title>Estilo de dieta</Title>
+        <Chips options={(Object.keys(DIET_STYLES) as DietStyle[]).map((k) => ({ value: k, label: DIET_STYLES[k].label }))} value={dietStyle} onChange={setDietStyle} />
+        <Muted>{DIET_STYLES[dietStyle].description}</Muted>
+      </Card>
+
       <Card>
         <Title>Treino</Title>
         <Chips
@@ -149,8 +195,8 @@ export default function ProfileScreen() {
         />
         <Muted style={{ marginBottom: 8 }}>
           {goal === 'bulk'
-            ? `Ritmo de ganho alvo: ${TRAINING_LEVELS[trainingLevel].description}. Quanto mais experiente, mais devagar se ganha músculo.`
-            : 'O nível de treino define o ritmo de ganho quando o objetivo é ganhar massa.'}
+            ? `Ritmo de ganho recomendado: ${TRAINING_LEVELS[trainingLevel].description}. Quanto mais experiente, mais devagar se ganha músculo.`
+            : 'O nível de treino define o ritmo recomendado quando o objetivo é ganhar massa.'}
         </Muted>
         <Field label="Dias de treino por semana" keyboardType="number-pad" value={trainingDays} onChangeText={setTrainingDays} />
         <ToggleRow
@@ -208,12 +254,13 @@ export default function ProfileScreen() {
         </Card>
       ) : null}
 
-      <Button title={profile ? 'Salvar alterações' : 'Calcular minhas metas'} onPress={save} disabled={!draft || !consent} />
+      <Button title={profile ? 'Salvar alterações' : 'Calcular minhas metas'} onPress={save} disabled={!draft || !consent || goalConflict} />
       {missing.length ? <Muted style={{ textAlign: 'center' }}>Falta preencher: {missing.join(', ')}.</Muted> : null}
       {saved ? <Muted>Perfil salvo.</Muted> : null}
 
       {profile ? (
         <Card>
+          <NavRow href="/onboarding" title="Refazer configuração guiada" subtitle="Responder as perguntas de novo, uma por vez" />
           <NavRow href="/account" title="Conta e dados" subtitle={hasBackend ? 'Login, sincronização, Saúde, exportar e apagar' : 'Exportar e apagar dados, Saúde'} />
           <NavRow href="/pro" title="MacroFactorBR Pro" subtitle="Recursos avançados" />
         </Card>

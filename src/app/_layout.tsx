@@ -70,6 +70,7 @@ export default function RootLayout() {
         <Stack.Screen name="quick-add" options={{ title: 'Registro rápido' }} />
         <Stack.Screen name="plan" options={{ title: 'Cardápio da semana' }} />
         <Stack.Screen name="checkin" options={{ title: 'Check-in semanal' }} />
+        <Stack.Screen name="onboarding" options={{ title: 'Configurar perfil' }} />
         <Stack.Screen name="micros" options={{ title: 'Micronutrientes' }} />
         <Stack.Screen name="progress" options={{ title: 'Progresso' }} />
         <Stack.Screen name="supplements" options={{ title: 'Suplementação' }} />

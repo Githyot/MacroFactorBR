@@ -3,10 +3,12 @@ import { useState } from 'react';
 import { Image, Platform, Pressable, ScrollView, Text, View } from 'react-native';
 
 import { ListCard, ListRow, Section, Segmented, WeightChart } from '../components/diet';
+import { GoalSummary, rateText } from '../components/goalWeight';
 import { Button, Card, Chips, colors, Field, LinkText, Muted, parseInput, styles, Title, useTheme } from '../components/ui';
 import { MIN_LOGGED_DAYS, MIN_WEIGH_INS, trendWeights } from '../domain/adaptiveTdee';
 import { addDays, todayIso } from '../domain/foods';
 import { hasFeature } from '../domain/pro';
+import { GOALS, weeklyRatePct } from '../domain/targets';
 import { diaryCsv, reportHtml, weightsCsv } from '../domain/report';
 import { usePro } from '../hooks/usePro';
 import { shareText, sharePdf } from '../services/files';
@@ -156,6 +158,38 @@ export default function ProgressScreen() {
               </View>
             ) : null}
           </Card>
+
+          {data ? (
+            <Card>
+              <View style={styles.rowBetween}>
+                <Title>Meta de peso</Title>
+                <LinkText onPress={() => router.navigate('/profile')}>{data.profile.goalWeightKg !== undefined ? 'Editar' : 'Definir'}</LinkText>
+              </View>
+              {data.profile.goal === 'recomp' ? (
+                <Muted>Objetivo: {GOALS.recomp.label.toLowerCase()}, mantendo o peso. Troque o objetivo no perfil para definir um peso alvo.</Muted>
+              ) : data.profile.goalWeightKg !== undefined ? (
+                <>
+                  <View style={{ flexDirection: 'row', gap: 12, marginBottom: 6 }}>
+                    <View style={{ flex: 1 }}>
+                      <Muted style={{ fontSize: 13 }}>Peso alvo</Muted>
+                      <Text style={{ fontSize: 22, fontWeight: '800', color: colors.text, fontVariant: ['tabular-nums'] }}>{fmt(data.profile.goalWeightKg)} kg</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Muted style={{ fontSize: 13 }}>Ritmo</Muted>
+                      <Text style={{ fontSize: 15, fontWeight: '700', color: colors.text, marginTop: 4 }}>
+                        {data.profile.goal === 'bulk' ? '+' : '−'}
+                        {rateText(data.profile.weightKg, weeklyRatePct(data.profile)).split(' · ')[0]}
+                      </Text>
+                    </View>
+                  </View>
+                  <GoalSummary profile={data.profile} currentKg={lastTrend} />
+                  <Muted style={{ fontSize: 12 }}>Meta diária: {data.targets.kcal} kcal ({data.targets.kcal - data.targets.tdee >= 0 ? '+' : '−'}{Math.abs(data.targets.kcal - data.targets.tdee)} kcal sobre o gasto).</Muted>
+                </>
+              ) : (
+                <Muted>Defina o peso que quer atingir e o ritmo. O app calcula o superávit ou déficit e mostra quando você deve chegar lá.</Muted>
+              )}
+            </Card>
+          ) : null}
 
           <Card>
             <View style={[styles.rowBetween, { marginBottom: 8 }]}>
