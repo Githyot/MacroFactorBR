@@ -9,6 +9,7 @@ import { Modal, Pressable, ScrollView, Text, TextInput, Vibration, View } from '
 import { BodyMap } from '../../components/BodyMap';
 import { ExerciseAnimation } from '../../components/ExerciseAnimation';
 import { InfoButton } from '../../components/HowTo';
+import { SwipeToDelete } from '../../components/SwipeToDelete';
 import { ActionSheet, SheetOption } from '../../components/training';
 import { Button, Card, colors, LinkText, Muted, parseInput, styles, useTheme } from '../../components/ui';
 import { Exercise } from '../../domain/workout/exercises';
@@ -177,15 +178,12 @@ function ExerciseBlock({
         const hintReps = s.type === 'warmup' ? (above?.reps ?? 10) : (suggestion?.reps ?? p?.reps ?? above?.reps ?? item.repRange?.[0] ?? 10);
         const prevText = p ? (isDuration ? `${p.distanceKm ? `${num(p.distanceKm)} km em ` : ''}${Math.round((p.durationSec ?? 0) / 60)} min` : usesWeight ? `${num(p.weightKg)} kg × ${p.reps}` : `${p.reps} reps`) : '–';
         return (
-          <View
-            key={i}
-            style={[styles.rowBetween, { gap: 6, paddingVertical: 3, borderRadius: 8, backgroundColor: s.done ? colors.primarySoft : 'transparent' }]}
-          >
+          <SwipeToDelete key={i} label={`Apagar série ${label}`} onDelete={() => onChange((e) => ({ ...e, sets: e.sets.filter((_, j) => j !== i) }))}>
+            <View style={[styles.rowBetween, { gap: 6, paddingVertical: 3, borderRadius: 8, backgroundColor: s.done ? colors.primarySoft : colors.card }]}>
             <Pressable
               onPress={() => setAt(i, { type: TYPE_ORDER[(TYPE_ORDER.indexOf(s.type) + 1) % TYPE_ORDER.length] })}
-              onLongPress={() => onChange((e) => ({ ...e, sets: e.sets.filter((_, j) => j !== i) }))}
               style={{ width: 40, alignItems: 'center' }}
-              accessibilityLabel={`Série ${label}. Toque para mudar o tipo, segure para apagar.`}
+              accessibilityLabel={`Série ${label}. Toque para mudar o tipo. Deslize a linha para a esquerda para apagar.`}
             >
               <Text style={{ fontWeight: '700', color: s.type === 'warmup' ? colors.carbs : s.type === 'normal' ? colors.text : colors.danger }}>{label}</Text>
             </Pressable>
@@ -235,7 +233,8 @@ function ExerciseBlock({
             >
               <Text style={{ color: s.done ? colors.onPrimary : colors.muted, fontWeight: '800' }}>✓</Text>
             </Pressable>
-          </View>
+            </View>
+          </SwipeToDelete>
         );
       })}
       <Pressable
@@ -249,7 +248,7 @@ function ExerciseBlock({
       >
         <Text style={{ color: colors.text, fontWeight: '600' }}>+ Adicionar série</Text>
       </Pressable>
-      {index === 0 ? <Muted style={{ marginTop: 6, fontSize: 12 }}>Toque no número da série para marcar aquecimento (A), falha (F) ou drop (D). Segure para apagar.</Muted> : null}
+      {index === 0 ? <Muted style={{ marginTop: 6, fontSize: 12 }}>Toque no número da série para marcar aquecimento (A), falha (F) ou drop (D). Deslize a série para a esquerda para apagar.</Muted> : null}
     </Card>
   );
 }
