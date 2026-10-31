@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 
-import { colors, isGlass, useTheme } from './ui';
+import { colors, isGlass, screenBackground, useTheme } from './ui';
 
 /** Cabeçalho e fundo das telas conforme o tema. Usado pela pilha e pelas abas. */
 export function useHeaderOptions() {
@@ -13,7 +13,8 @@ export function useHeaderOptions() {
       headerTitleStyle: { color: colors.text, fontWeight: def.shape.titleWeight },
       headerTitleAlign: def.shape.headerCenter ? ('center' as const) : ('left' as const),
       headerShadowVisible: def.shape.headerBorder,
-      background: glass ? 'transparent' : colors.bg,
+      // Opaco também no vidro: uma cena transparente mostra as telas de baixo.
+      background: screenBackground(),
     };
     // key muda junto com as cores
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -32,6 +32,12 @@ function parseBirth(s: string): string | undefined {
   return Number.isNaN(new Date(`${iso}T00:00:00`).getTime()) ? undefined : iso;
 }
 
+/** Põe as barras enquanto a data é digitada: "22052003" vira "22/05/2003". */
+function maskBirth(s: string): string {
+  const d = s.replace(/\D/g, '').slice(0, 8);
+  return [d.slice(0, 2), d.slice(2, 4), d.slice(4)].filter(Boolean).join('/');
+}
+
 function formatBirth(iso?: string): string {
   if (!iso) return '';
   const [y, m, d] = iso.split('-');
@@ -66,6 +72,13 @@ export default function ProfileScreen() {
   const birthDate = parseBirth(birth);
   const heightCm = parseInput(height);
   const weightKg = parseInput(weight);
+  // Mostra o que impede o botão de salvar, em vez de deixá-lo apagado sem explicação.
+  const missing = [
+    !birthDate && 'nascimento (DD/MM/AAAA)',
+    !heightCm && 'altura',
+    !weightKg && 'peso',
+    !consent && 'concordar com o uso dos dados',
+  ].filter((x): x is string => Boolean(x));
   const draft: Profile | undefined =
     birthDate && heightCm && weightKg
       ? {
@@ -105,7 +118,7 @@ export default function ProfileScreen() {
         <Field label="Nome (opcional)" value={name} onChangeText={setName} />
         <Chips options={[{ value: 'male', label: 'Masculino' }, { value: 'female', label: 'Feminino' }]} value={sex} onChange={setSex} />
         <View style={styles.row}>
-          <Field label="Nascimento" value={birth} onChangeText={setBirth} placeholder="DD/MM/AAAA" keyboardType="numbers-and-punctuation" />
+          <Field label="Nascimento" value={birth} onChangeText={(v) => setBirth(maskBirth(v))} placeholder="DD/MM/AAAA" keyboardType="number-pad" maxLength={10} />
           <Field label="Altura" suffix="cm" keyboardType="decimal-pad" value={height} onChangeText={setHeight} />
         </View>
         <View style={styles.row}>
@@ -196,6 +209,7 @@ export default function ProfileScreen() {
       ) : null}
 
       <Button title={profile ? 'Salvar alterações' : 'Calcular minhas metas'} onPress={save} disabled={!draft || !consent} />
+      {missing.length ? <Muted style={{ textAlign: 'center' }}>Falta preencher: {missing.join(', ')}.</Muted> : null}
       {saved ? <Muted>Perfil salvo.</Muted> : null}
 
       {profile ? (

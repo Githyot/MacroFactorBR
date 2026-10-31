@@ -19,7 +19,7 @@ function applyTheme(def: ThemeDef, dark: boolean) {
   Object.assign(colors, dark ? def.dark : def.light);
   Object.assign(styles, makeStyles(colors, def));
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
-    // No vidro, o degradê fica no fundo da página e as telas ficam transparentes.
+    // No vidro, o degradê fica no fundo da página e também em cada tela (veja makeStyles).
     const g = def.glass?.[dark ? 'dark' : 'light'];
     document.body.style.background = g ? `linear-gradient(160deg, ${g[0]} 0%, ${g[1]} 100%) fixed` : colors.bg;
     document.body.style.colorScheme = dark ? 'dark' : 'light';
@@ -51,6 +51,22 @@ export function useTheme() {
 
 /** Vidro só na web, onde há desfoque de fundo; no celular fica a cor translúcida. */
 export const isGlass = () => Boolean(current.def.glass) && Platform.OS === 'web';
+
+/** Cor sólida do fundo de vidro (primeira cor do degradê), ou undefined fora do vidro. */
+function glassBase(def: ThemeDef, dark: boolean): string | undefined {
+  return Platform.OS === 'web' ? def.glass?.[dark ? 'dark' : 'light'][0] : undefined;
+}
+
+/** Degradê do vidro como imagem de fundo da tela (só na web). */
+function glassImage(def: ThemeDef, dark: boolean): ViewStyle {
+  const g = Platform.OS === 'web' ? def.glass?.[dark ? 'dark' : 'light'] : undefined;
+  return g ? ({ backgroundImage: `linear-gradient(160deg, ${g[0]} 0%, ${g[1]} 100%)`, backgroundAttachment: 'fixed' } as ViewStyle) : {};
+}
+
+/** Fundo opaco das telas e das cenas da navegação. */
+export function screenBackground(): string {
+  return glassBase(current.def, current.dark) ?? colors.bg;
+}
 
 
 export function Card({ children, style }: { children: ReactNode; style?: ViewStyle }) {
@@ -219,7 +235,9 @@ function makeStyles(c: Palette, def: ThemeDef) {
   const blur = glass ? ({ backdropFilter: `blur(${def.glass!.blur}px) saturate(180%)` } as ViewStyle) : {};
   const font: TextStyle = web && def.webFont ? { fontFamily: def.webFont } : {};
   return sheet({
-    screen: { flex: 1, backgroundColor: glass ? 'transparent' : c.bg },
+    // Telas sempre opacas: as abas e a pilha mantêm as telas anteriores montadas por baixo,
+    // e uma tela transparente deixava o conteúdo delas aparecer sobreposto.
+    screen: { flex: 1, backgroundColor: glassBase(def, current.dark) ?? c.bg, ...glassImage(def, current.dark) },
     content: { padding: sh.padding, paddingBottom: 48, gap: sh.gap, maxWidth: 720, width: '100%', alignSelf: 'center' },
     card: { backgroundColor: c.card, borderRadius: sh.radiusCard, padding: 16, borderWidth: sh.cardBorder, borderColor: c.border, ...shadow, ...blur },
     title: { fontSize: sh.titleSize, fontWeight: sh.titleWeight, color: c.text, marginBottom: 8, ...font },
@@ -239,7 +257,8 @@ function makeStyles(c: Palette, def: ThemeDef) {
       backgroundColor: c.inputBg,
       ...(def.id === 'windows' ? { borderBottomWidth: 2, borderBottomColor: c.muted } : {}),
     },
-    input: { flex: 1, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: c.text, ...font },
+    // minWidth 0: na web o campo tem largura própria e empurrava a unidade (kg, cm) para fora.
+    input: { flex: 1, minWidth: 0, paddingHorizontal: 12, paddingVertical: 10, fontSize: 16, color: c.text, ...font },
     suffix: { paddingRight: 12, color: c.muted },
     chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
     chip: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: sh.radiusChip, borderWidth: 1, borderColor: c.border, backgroundColor: glass ? c.cardAlt : c.inputBg },
