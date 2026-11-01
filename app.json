@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "MacroFactorBR",
-    "slug": "macrofactorbr",
+    "name": "HeavyFactor",
+    "slug": "heavyfactor",
     "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "br.macrofactor.app",
+      "bundleIdentifier": "br.heavyfactor.app",
       "infoPlist": {}
     },
     "android": {
@@ -20,7 +20,7 @@
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "br.macrofactor.app",
+      "package": "br.heavyfactor.app",
       "permissions": [
         "android.permission.health.READ_WEIGHT",
         "android.permission.health.WRITE_WEIGHT",
@@ -37,15 +37,15 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "O MacroFactorBR usa a câmera para ler códigos de barras e tabelas nutricionais.",
+          "cameraPermission": "O HeavyFactor usa a câmera para ler códigos de barras e tabelas nutricionais.",
           "recordAudioAndroid": false
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "O MacroFactorBR acessa suas fotos para ler tabelas nutricionais.",
-          "cameraPermission": "O MacroFactorBR usa a câmera para fotografar tabelas nutricionais."
+          "photosPermission": "O HeavyFactor acessa suas fotos para ler tabelas nutricionais.",
+          "cameraPermission": "O HeavyFactor usa a câmera para fotografar tabelas nutricionais."
         }
       ],
       "expo-sharing",
@@ -53,8 +53,8 @@
       [
         "@kingstinct/react-native-healthkit",
         {
-          "NSHealthShareUsageDescription": "O MacroFactorBR lê seu peso e seus passos do Apple Saúde para calcular seu gasto energético.",
-          "NSHealthUpdateUsageDescription": "O MacroFactorBR salva no Apple Saúde as pesagens que você registra no app."
+          "NSHealthShareUsageDescription": "O HeavyFactor lê seu peso e seus passos do Apple Saúde para calcular seu gasto energético.",
+          "NSHealthUpdateUsageDescription": "O HeavyFactor salva no Apple Saúde as pesagens que você registra no app."
         }
       ],
       [
@@ -66,6 +66,6 @@
         }
       ]
     ],
-    "scheme": "macrofactorbr"
+    "scheme": "heavyfactor"
   }
 }

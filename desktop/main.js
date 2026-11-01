@@ -1,4 +1,4 @@
-// App de desktop (Linux): abre a versão web do MacroFactorBR numa janela própria.
+// App de desktop (Linux): abre a versão web do HeavyFactor numa janela própria.
 // Os arquivos são servidos pelo protocolo app://, que mantém a mesma origem entre
 // aberturas; assim os dados salvos no aparelho (localStorage) não se perdem.
 
@@ -8,6 +8,10 @@ const fs = require('node:fs');
 const { pathToFileURL } = require('node:url');
 
 const WEB_ROOT = path.join(__dirname, 'web');
+
+// O app se chamava MacroFactorBR. A pasta de dados e a origem app://macrofactorbr
+// continuam com o nome antigo para quem atualiza não perder o que já registrou.
+app.setPath('userData', path.join(app.getPath('appData'), 'MacroFactorBR'));
 
 protocol.registerSchemesAsPrivileged([
   { scheme: 'app', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } },
@@ -28,7 +32,7 @@ function createWindow() {
     width: 480,
     height: 900,
     minWidth: 360,
-    title: 'MacroFactorBR',
+    title: 'HeavyFactor',
     autoHideMenuBar: true,
     icon: path.join(__dirname, 'web', 'favicon.ico'),
     webPreferences: { contextIsolation: true, sandbox: true },

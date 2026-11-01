@@ -159,7 +159,7 @@ export function shareWorkout(w: Workout, exercises: Record<string, Exercise>) {
     .filter((e) => e.sets.some((s) => s.done))
     .map((e) => `• ${e.sets.filter((s) => s.done).length}× ${exercises[e.exerciseId]?.name ?? 'Exercício'}`);
   Share.share({
-    message: `${w.name} 💪\n${fmtDuration(workoutDurationMin(w))} · ${fmtNumber(Math.round(workoutVolume(w)))} kg · ${completedSets(w)} séries\n${lines.join('\n')}\n\nRegistrado no MacroFactorBR`,
+    message: `${w.name} 💪\n${fmtDuration(workoutDurationMin(w))} · ${fmtNumber(Math.round(workoutVolume(w)))} kg · ${completedSets(w)} séries\n${lines.join('\n')}\n\nRegistrado no HeavyFactor`,
   }).catch(() => {});
 }
 

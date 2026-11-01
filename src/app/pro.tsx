@@ -35,7 +35,7 @@ export default function ProScreen() {
 
   return (
     <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <Stack.Screen options={{ title: 'MacroFactorBR Pro' }} />
+      <Stack.Screen options={{ title: 'HeavyFactor Pro' }} />
       <Card>
         <Title>Sempre grátis</Title>
         <Muted>Diário, scanner de código de barras, leitura da tabela nutricional, metas de proteína, base TACO completa e sem anúncios.</Muted>

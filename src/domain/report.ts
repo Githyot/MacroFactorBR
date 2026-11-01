@@ -67,12 +67,12 @@ export function reportHtml(args: {
   const last = trend[trend.length - 1];
   const change = first && last ? last.kg - first.kg : undefined;
 
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório MacroFactorBR</title>
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>Relatório HeavyFactor</title>
 <style>body{font-family:Helvetica,Arial,sans-serif;color:#16201B;margin:32px}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:24px 0 8px}
 table{border-collapse:collapse;width:100%;font-size:13px}td,th{border-bottom:1px solid #DDE3E0;padding:6px;text-align:right}td:first-child,th:first-child{text-align:left}
 .muted{color:#5F6B65;font-size:12px}.grid{display:flex;gap:24px;flex-wrap:wrap}.box{border:1px solid #DDE3E0;border-radius:8px;padding:10px 14px}</style></head><body>
 <h1>Relatório nutricional${profile.name ? ` · ${esc(profile.name)}` : ''}</h1>
-<div class="muted">Últimos ${days} dias até ${endDate.split('-').reverse().join('/')} · gerado pelo MacroFactorBR</div>
+<div class="muted">Últimos ${days} dias até ${endDate.split('-').reverse().join('/')} · gerado pelo HeavyFactor</div>
 <h2>Metas atuais</h2>
 <div class="grid"><div class="box">${targets.kcal} kcal</div><div class="box">${targets.protein} g proteína (${profile.proteinPerKg} g/kg)</div><div class="box">${targets.carbs} g carboidratos</div><div class="box">${targets.fat} g gorduras</div></div>
 <h2>Resumo</h2>

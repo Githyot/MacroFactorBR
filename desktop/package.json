@@ -1,6 +1,6 @@
 {
-  "name": "macrofactorbr",
-  "productName": "MacroFactorBR",
+  "name": "heavyfactor",
+  "productName": "HeavyFactor",
   "version": "1.1.0",
   "description": "App de dieta para musculação, treino e suplementação",
   "homepage": "https://github.com/Githyot/MacroFactorBR",
@@ -20,8 +20,8 @@
     "electron-builder": "26.18.0"
   },
   "build": {
-    "appId": "br.macrofactor.app",
-    "productName": "MacroFactorBR",
+    "appId": "br.heavyfactor.app",
+    "productName": "HeavyFactor",
     "files": [
       "main.js",
       "web/**/*"
@@ -37,10 +37,26 @@
       ],
       "category": "Utility",
       "icon": "icon.png",
-      "maintainer": "MacroFactorBR",
+      "maintainer": "HeavyFactor",
       "synopsis": "Dieta, treino e suplementação para musculação",
-      "artifactName": "MacroFactorBR-${version}-${arch}.${ext}"
+      "artifactName": "HeavyFactor-${version}-${arch}.${ext}"
     },
-    "publish": null
+    "publish": null,
+    "deb": {
+      "fpm": [
+        "--replaces",
+        "macrofactorbr",
+        "--conflicts",
+        "macrofactorbr"
+      ]
+    },
+    "rpm": {
+      "fpm": [
+        "--replaces",
+        "macrofactorbr",
+        "--conflicts",
+        "macrofactorbr"
+      ]
+    }
   }
 }

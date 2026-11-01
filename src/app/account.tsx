@@ -71,7 +71,7 @@ export default function AccountScreen() {
   const exportAll = () =>
     run(async () => {
       const data = { ...pickPersisted(useAppStore.getState()), photos: [] };
-      await shareText(`macrofactorbr-dados-${todayIso()}.json`, JSON.stringify(data, null, 2), 'application/json');
+      await shareText(`heavyfactor-dados-${todayIso()}.json`, JSON.stringify(data, null, 2), 'application/json');
     });
 
   const deleteEverything = () =>

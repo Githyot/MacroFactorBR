@@ -1,6 +1,8 @@
-# MacroFactorBR
+# HeavyFactor
 
 App de dieta brasileiro para musculação e ganho de massa magra. Calcula metas de calorias, proteína, carboidratos e gorduras, acompanha micronutrientes e cadastra alimentos pelo código de barras, pela foto da tabela nutricional, por texto, por voz ou pela foto do prato.
+
+> Antes se chamava MacroFactorBR. Os dados salvos no aparelho continuam valendo depois da troca de nome no desktop e na web.
 
 Roda em **Android, iOS e web** a partir de um único código (TypeScript + Expo/React Native).
 
@@ -59,11 +61,11 @@ Cada [release](https://github.com/Githyot/MacroFactorBR/releases) traz os instal
 
 | Sistema | Arquivo | Como instalar |
 | --- | --- | --- |
-| Android | `MacroFactorBR-<versão>-android.apk` | Abra o arquivo no celular e permita instalar de fontes desconhecidas. |
-| Fedora, openSUSE, RHEL | `MacroFactorBR-<versão>-x86_64.rpm` | `sudo dnf install ./MacroFactorBR-*.rpm` |
-| Ubuntu, Debian, Mint | `MacroFactorBR-<versão>-amd64.deb` | `sudo apt install ./MacroFactorBR-*.deb` |
-| Qualquer Linux | `MacroFactorBR-<versão>-x86_64.AppImage` | `chmod +x MacroFactorBR-*.AppImage` e abra. |
-| Web | `MacroFactorBR-<versão>-web.zip` | Publique a pasta em qualquer hospedagem de sites estáticos. |
+| Android | `HeavyFactor-<versão>-android.apk` | Abra o arquivo no celular e permita instalar de fontes desconhecidas. |
+| Fedora, openSUSE, RHEL | `HeavyFactor-<versão>-x86_64.rpm` | `sudo dnf install ./HeavyFactor-*.rpm` |
+| Ubuntu, Debian, Mint | `HeavyFactor-<versão>-amd64.deb` | `sudo apt install ./HeavyFactor-*.deb` |
+| Qualquer Linux | `HeavyFactor-<versão>-x86_64.AppImage` | `chmod +x HeavyFactor-*.AppImage` e abra. |
+| Web | `HeavyFactor-<versão>-web.zip` | Publique a pasta em qualquer hospedagem de sites estáticos. |
 
 O app de Linux é a versão web numa janela própria (Electron, pasta `desktop/`). Código de barras pela câmera e Health Connect/Apple Saúde só existem no celular, e o ditado por voz não funciona no app de desktop.
 

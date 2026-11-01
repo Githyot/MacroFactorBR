@@ -201,7 +201,7 @@ export default function ProfileScreen() {
       {profile ? (
         <Card>
           <NavRow href="/account" title="Conta e dados" subtitle={hasBackend ? 'Login, sincronização, Saúde, exportar e apagar' : 'Exportar e apagar dados, Saúde'} />
-          <NavRow href="/pro" title="MacroFactorBR Pro" subtitle="Recursos avançados" />
+          <NavRow href="/pro" title="HeavyFactor Pro" subtitle="Recursos avançados" />
         </Card>
       ) : null}
 

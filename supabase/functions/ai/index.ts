@@ -1,4 +1,4 @@
-// IA do MacroFactorBR (Claude): estrutura o texto lido de uma tabela nutricional,
+// IA do HeavyFactor (Claude): estrutura o texto lido de uma tabela nutricional,
 // estima um prato por foto, entende refeições em texto livre e explica o check-in semanal.
 // A chave da Anthropic fica só aqui no servidor (secret ANTHROPIC_API_KEY).
 
@@ -107,7 +107,7 @@ class HttpError extends Error {
 }
 
 const SYSTEM_BASE =
-  'Você é o motor de nutrição do MacroFactorBR, um app brasileiro de dieta para musculação. ' +
+  'Você é o motor de nutrição do HeavyFactor, um app brasileiro de dieta para musculação. ' +
   'Use unidades brasileiras (g, mg, kcal) e nomes de alimentos como na Tabela TACO. ' +
   'Nunca invente valores que não dá para estimar: prefira null quando um campo não aparece no texto.';
 
