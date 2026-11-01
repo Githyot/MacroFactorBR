@@ -5,10 +5,10 @@
   "description": "App de dieta para musculação, treino e suplementação",
   "homepage": "https://github.com/Githyot/MacroFactorBR",
   "author": {
-    "name": "MacroFactorBR",
-    "email": "contato@macrofactor.br"
+    "name": "Githyot",
+    "email": "117548028+Githyot@users.noreply.github.com"
   },
-  "license": "UNLICENSED",
+  "license": "MIT",
   "main": "main.js",
   "private": true,
   "scripts": {

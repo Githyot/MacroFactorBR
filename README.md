@@ -121,6 +121,24 @@ src/
 supabase/         banco (migrations) e funções (ai, delete-account)
 ```
 
+## Contribuindo
+
+Issues e pull requests são bem-vindos. Antes de abrir um PR, rode `npm test`, `npm run typecheck` e `npm run lint`.
+
+Nunca coloque chaves no código: as variáveis ficam no `.env` (fora do git, veja `.env.example`) e a chave da Anthropic fica só nos secrets do Supabase. Instaladores (APK, RPM, DEB, AppImage, EXE) vão anexados às releases, não ao repositório.
+
+## Aviso
+
+O app é uma ferramenta de acompanhamento e não substitui nutricionista, médico ou educador físico. As metas são estimativas a partir de fórmulas publicadas; ajuste com um profissional, principalmente se você tem alguma condição de saúde. O app registra medicamentos, mas nunca sugere doses.
+
+Este é um projeto independente, sem vínculo com MacroFactor, Hevy ou qualquer outro app citado. Os nomes aparecem só como referência de estilo e pertencem aos seus donos.
+
 ## Créditos
 
-Tabela Brasileira de Composição de Alimentos (TACO), 4ª edição, NEPA/UNICAMP. Dados em CSV via [raulfdm/taco-api](https://github.com/raulfdm/taco-api). Produtos industrializados via [Open Food Facts](https://world.openfoodfacts.org) (ODbL).
+- Tabela Brasileira de Composição de Alimentos (TACO), 4ª edição, NEPA/UNICAMP. Dados em CSV via [raulfdm/taco-api](https://github.com/raulfdm/taco-api) (MIT).
+- Produtos industrializados via [Open Food Facts](https://world.openfoodfacts.org) (ODbL).
+- Imagens dos exercícios do [Free Exercise DB](https://github.com/yuhonas/free-exercise-db) (domínio público, Unlicense), carregadas direto do repositório original.
+
+## Licença
+
+Código sob a [licença MIT](LICENSE). Os dados de terceiros acima seguem as licenças de cada fonte.
