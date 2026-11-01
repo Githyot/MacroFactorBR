@@ -51,7 +51,7 @@ export default function DashboardScreen() {
         {header}
         <View style={{ padding: 16 }}>
           <View style={[styles.card, { gap: 12 }]}>
-            <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800' }}>Bem-vindo ao MacroFactorBR</Text>
+            <Text style={{ color: colors.text, fontSize: 22, fontWeight: '800' }}>Bem-vindo ao HeavyFactor</Text>
             <Text style={[styles.muted, { fontSize: 15 }]}>
               Cadastre seu peso, altura, nível de treino e objetivo para calcular suas metas de calorias e proteína para ganho de massa magra.
             </Text>

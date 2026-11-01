@@ -50,7 +50,7 @@ export default function RecipeScreen() {
     const c = encodeRecipe(draft, foods);
     setCode(c);
     try {
-      await Share.share({ message: `Receita "${draft.name}" no MacroFactorBR. Cole em Alimentos > Receitas:\n${c}` });
+      await Share.share({ message: `Receita "${draft.name}" no HeavyFactor. Cole em Alimentos > Receitas:\n${c}` });
     } catch {
       // Sem compartilhamento nativo: o código fica na tela para copiar.
     }

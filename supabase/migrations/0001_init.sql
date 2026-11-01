@@ -1,4 +1,4 @@
--- MacroFactorBR: banco do backend.
+-- HeavyFactor: banco do backend.
 -- Dados de saúde são sensíveis (LGPD, art. 11): cada usuário só lê e escreve os próprios dados,
 -- e a conta inteira pode ser apagada pela função delete-account.
 

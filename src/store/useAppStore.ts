@@ -338,6 +338,7 @@ export const useAppStore = create<PersistedState & Actions>()(
       };
     },
     {
+      // Nome antigo do app; não mudar, senão os dados salvos no aparelho somem.
       name: 'macrofactorbr-v1',
       version: 4,
       storage: createJSONStorage(() => AsyncStorage),

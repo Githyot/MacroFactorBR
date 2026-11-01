@@ -13,5 +13,5 @@ export async function shareText(filename: string, content: string, mimeType: str
 
 export async function sharePdf(html: string): Promise<void> {
   const { uri } = await Print.printToFileAsync({ html });
-  await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Relatório MacroFactorBR' });
+  await Sharing.shareAsync(uri, { mimeType: 'application/pdf', dialogTitle: 'Relatório HeavyFactor' });
 }

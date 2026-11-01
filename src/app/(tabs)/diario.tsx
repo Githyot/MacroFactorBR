@@ -37,7 +37,7 @@ export default function TodayScreen() {
     return (
       <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
         <Card>
-          <Title>Bem-vindo ao MacroFactorBR</Title>
+          <Title>Bem-vindo ao HeavyFactor</Title>
           <Muted style={{ marginBottom: 16 }}>
             Cadastre seu peso, altura, nível de treino e objetivo para calcular suas metas de calorias e proteína para ganho de massa magra.
           </Muted>

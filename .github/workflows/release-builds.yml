@@ -41,7 +41,7 @@ jobs:
       - run: npm ci
       - run: npx expo export -p web
       - name: Compacta a versão web
-        run: V=${TAG:-vdev}; cd dist && zip -qr "../MacroFactorBR-${V#v}-web.zip" .
+        run: V=${TAG:-vdev}; cd dist && zip -qr "../HeavyFactor-${V#v}-web.zip" .
       - uses: actions/upload-artifact@v4
         with:
           name: web
@@ -50,7 +50,7 @@ jobs:
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$TAG" MacroFactorBR-*-web.zip --clobber
+        run: gh release upload "$TAG" HeavyFactor-*-web.zip --clobber
 
   linux:
     needs: web
@@ -105,13 +105,13 @@ jobs:
       - name: Compila o APK
         working-directory: android
         run: ./gradlew assembleRelease --no-daemon
-      - run: cp android/app/build/outputs/apk/release/app-release.apk "MacroFactorBR-$(V=${TAG:-vdev}; echo ${V#v})-android.apk"
+      - run: cp android/app/build/outputs/apk/release/app-release.apk "HeavyFactor-$(V=${TAG:-vdev}; echo ${V#v})-android.apk"
       - uses: actions/upload-artifact@v4
         with:
           name: android
-          path: MacroFactorBR-*-android.apk
+          path: HeavyFactor-*-android.apk
       - name: Anexa à release
         if: github.event_name != 'pull_request'
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload "$TAG" MacroFactorBR-*-android.apk --clobber
+        run: gh release upload "$TAG" HeavyFactor-*-android.apk --clobber

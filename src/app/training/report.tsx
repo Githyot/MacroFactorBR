@@ -60,7 +60,7 @@ export default function MonthlyReportScreen() {
   const share = () =>
     Share.share({
       message:
-        `Meu ${monthName(month)} no MacroFactorBR 💪\n` +
+        `Meu ${monthName(month)} no HeavyFactor 💪\n` +
         `${r.totals.workouts} treinos · ${fmtDuration(r.totals.durationMin)} · ${fmtNumber(Math.round(r.totals.volume))} kg · ${r.totals.sets} séries\n` +
         `${r.records.length} recordes · sequência de ${r.streakWeeks} semanas`,
     }).catch(() => {});

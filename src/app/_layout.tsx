@@ -86,7 +86,7 @@ export default function RootLayout() {
         <Stack.Screen name="training/report" options={{ title: 'Relatório mensal' }} />
         <Stack.Screen name="exercise/[id]" options={{ title: 'Exercício' }} />
         <Stack.Screen name="routine/[id]" options={{ title: 'Rotina' }} />
-        <Stack.Screen name="pro" options={{ title: 'MacroFactorBR Pro', presentation: 'modal' }} />
+        <Stack.Screen name="pro" options={{ title: 'HeavyFactor Pro', presentation: 'modal' }} />
       </Stack>
     </ThemeProvider>
   );
