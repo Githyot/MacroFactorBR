@@ -55,7 +55,7 @@ export default function DashboardScreen() {
             <Text style={[styles.muted, { fontSize: 15 }]}>
               Cadastre seu peso, altura, nível de treino e objetivo para calcular suas metas de calorias e proteína para ganho de massa magra.
             </Text>
-            <Button title="Configurar meu perfil" onPress={() => router.push('/profile')} />
+            <Button title="Configurar meu perfil" onPress={() => router.push('/onboarding')} />
           </View>
         </View>
       </ScrollView>

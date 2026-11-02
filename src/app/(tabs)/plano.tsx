@@ -36,7 +36,7 @@ export default function PlanHubScreen() {
         <Card>
           <Title>Seu plano</Title>
           <Muted style={{ marginBottom: 16 }}>Configure o perfil para calcular as metas, liberar o check-in semanal e gerar o cardápio.</Muted>
-          <Button title="Configurar meu perfil" onPress={() => router.push('/profile')} />
+          <Button title="Configurar meu perfil" onPress={() => router.push('/onboarding')} />
         </Card>
       </ScrollView>
     );
